@@ -1,0 +1,22 @@
+{
+  "projectName": "carpool-it",
+  "mode": "file-router",
+  "typescript": true,
+  "tailwind": true,
+  "packageManager": "bun",
+  "addOnOptions": {},
+  "git": true,
+  "version": 1,
+  "framework": "react-cra",
+  "chosenAddOns": [
+    "biome",
+    "db",
+    "compiler",
+    "shadcn",
+    "t3env",
+    "table",
+    "storybook",
+    "tanstack-query",
+    "start"
+  ]
+}

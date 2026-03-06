@@ -1,0 +1,1 @@
+export { travelRepository } from './travel';

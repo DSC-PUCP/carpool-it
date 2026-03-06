@@ -1,0 +1,28 @@
+/* Glass morphism panel - for cards and content areas */
+.glass-panel {
+  background: color-mix(in srgb, var(--color-popover) 97%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--color-border) 6%, transparent);
+  color: var(--color-foreground);
+}
+
+.light .glass-panel {
+  background: color-mix(in srgb, var(--color-popover) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 6%, transparent);
+}
+
+/* Glass morphism navigation - for headers and navbars */
+.glass-nav {
+  background: color-mix(in srgb, var(--color-background) 85%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--color-border) 5%, transparent);
+}
+
+.light .glass-nav {
+  background: color-mix(in srgb, var(--color-background) 85%, transparent);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--color-border) 5%, transparent);
+}

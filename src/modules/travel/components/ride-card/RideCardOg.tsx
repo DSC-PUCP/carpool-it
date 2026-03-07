@@ -1,5 +1,6 @@
-import { format, isToday, isTomorrow } from 'date-fns';
+import { isToday, isTomorrow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import type { TravelRoom } from '@/core/models';
 import { universityLabel } from '@/modules/travel/const';
 import {
@@ -7,11 +8,14 @@ import {
   getClosestReferencePoint,
 } from '@/modules/travel/utils';
 
+const LIMA_TZ = 'America/Lima';
+
 export default function RideCardOg(props: TravelRoom) {
   const { direction, datetime, driver, stops } = props;
   const isToCampus = direction === 'to_campus';
 
   const driverStop = stops.find((s) => s.userRole === 'driver');
+
   const relevantLocation = driver
     ? driverStop?.stopCoords
     : farestPointFromCampus(stops.map((s) => s.stopCoords));
@@ -19,25 +23,35 @@ export default function RideCardOg(props: TravelRoom) {
   const closestRef = relevantLocation
     ? getClosestReferencePoint(relevantLocation)
     : null;
+
   const relevantLabel = closestRef?.label ?? 'Ubicación';
 
   const originLabel = isToCampus ? relevantLabel : universityLabel;
   const destinationLabel = isToCampus ? universityLabel : relevantLabel;
 
   const totalSeats = driver?.seats ?? 0;
+
   const occupiedSeats = stops.reduce(
     (acc, stop) => (stop.userRole === 'passenger' ? acc + stop.seats : acc),
     0
   );
+
   const availableSeats = Math.max(0, totalSeats - occupiedSeats);
 
   const dateObj = new Date(datetime);
-  let dateLabel = format(dateObj, "d 'de' MMMM", { locale: es });
 
-  if (isToday(dateObj)) dateLabel = 'Hoy';
-  else if (isTomorrow(dateObj)) dateLabel = 'Mañana';
+  const dateInLima = toZonedTime(dateObj, LIMA_TZ);
 
-  const timeLabel = format(dateObj, 'hh:mm a', { locale: es });
+  let dateLabel = formatInTimeZone(dateObj, LIMA_TZ, "d 'de' MMMM", {
+    locale: es,
+  });
+
+  if (isToday(dateInLima)) dateLabel = 'Hoy';
+  else if (isTomorrow(dateInLima)) dateLabel = 'Mañana';
+
+  const timeLabel = formatInTimeZone(dateObj, LIMA_TZ, 'hh:mm a', {
+    locale: es,
+  });
 
   const priceLabel = driver
     ? new Intl.NumberFormat('es-PE', {
@@ -51,6 +65,7 @@ export default function RideCardOg(props: TravelRoom) {
     stops
       .filter((s) => {
         if (!relevantLocation) return true;
+
         return (
           s.stopCoords[0] !== relevantLocation[0] ||
           s.stopCoords[1] !== relevantLocation[1]

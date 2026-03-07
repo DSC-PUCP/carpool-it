@@ -4,8 +4,9 @@ import {
   notFound,
   useLocation,
 } from '@tanstack/react-router';
-import { format, isToday, isTomorrow } from 'date-fns';
+import { isToday, isTomorrow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { ArrowLeft, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -59,16 +60,25 @@ export const Route = createFileRoute('/_layout/_public/travel/$id')({
     }, 0);
     const availableSeats = Math.max(0, totalSeats - occupiedSeats);
 
-    const dateObj = new Date(datetime);
-    let dateLabel = format(dateObj, "d 'de' MMM", { locale: es });
+    const LIMA_TZ = 'America/Lima';
 
-    if (isToday(dateObj)) {
+    const dateObj = new Date(datetime);
+
+    const dateInLima = toZonedTime(dateObj, LIMA_TZ);
+
+    let dateLabel = formatInTimeZone(dateObj, LIMA_TZ, "d 'de' MMM", {
+      locale: es,
+    });
+
+    if (isToday(dateInLima)) {
       dateLabel = 'Hoy';
-    } else if (isTomorrow(dateObj)) {
+    } else if (isTomorrow(dateInLima)) {
       dateLabel = 'Mañana';
     }
 
-    const timeLabel = format(dateObj, 'hh:mm a', { locale: es });
+    const timeLabel = formatInTimeZone(dateObj, LIMA_TZ, 'hh:mm a', {
+      locale: es,
+    });
 
     const title = `${originLabel} → ${destinationLabel} • ${isToCampus ? 'LLegada' : 'Salida'} ${dateLabel} ${timeLabel}`;
 

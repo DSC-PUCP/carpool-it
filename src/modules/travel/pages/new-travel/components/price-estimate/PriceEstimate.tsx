@@ -1,9 +1,6 @@
 import { Minus, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { Controller, useFormContext } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
-import { ButtonGroup } from '@/components/ui/button-group';
-import { Input } from '@/components/ui/input';
+import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import {
   InputGroup,
   InputGroupAddon,
@@ -22,6 +19,7 @@ export default function PriceEstimate({
   step = 0.5,
 }: PriceEstimateProps) {
   const { control, getValues } = useFormContext<FormSchema>();
+  const role = useWatch({ control, name: 'role' });
   const format = (val: number) => val.toFixed(2);
   const parse = (val: string) => Number(val.replace(',', '.')) || 0;
   const [inputValue, setInputValue] = useState(() =>
@@ -40,7 +38,10 @@ export default function PriceEstimate({
         };
 
         return (
-          <div className="flex items-center justify-between px-4 mb-4">
+          <div
+            className="flex items-center justify-between px-4 mb-4"
+            style={role === 'request' ? { display: 'none' } : undefined}
+          >
             <span className="text-sm font-medium text-muted-foreground">
               Contribución
             </span>

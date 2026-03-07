@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router';
 import AppSidebar from '@/components/common/AppSidebar';
+import WelcomeDialog from '@/components/common/WelcomeDialog';
 import AppLayout from '@/components/layout/AppLayout';
 import GlowBackground from '@/components/layout/glow-background/GlowBackground';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -49,6 +50,7 @@ export const Route = createFileRoute('/_layout')({
     return (
       <SidebarProvider>
         {user && <AppSidebar {...user} onLogout={mutate} />}
+        {user && <WelcomeDialog />}
         <GlowBackground>
           <AppLayout>
             <Outlet />

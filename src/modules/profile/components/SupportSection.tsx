@@ -1,4 +1,5 @@
-import { EllipsisVertical, Share } from 'lucide-react';
+import { EllipsisVertical, ExternalLink, Share, Share2 } from 'lucide-react';
+import previewTravel from '@/assets/images/preview-travel.webp';
 import {
   Accordion,
   AccordionContent,
@@ -101,6 +102,43 @@ export default function SupportSection() {
                     </ol>
                   </TabsContent>
                 </Tabs>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="compartir-viaje-whatsapp">
+            <AccordionTrigger>Compartir viaje por WhatsApp</AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-3 text-sm leading-6 text-muted-foreground">
+                <p>
+                  Abre el detalle de un viaje y toca el ícono{' '}
+                  <Share2 className="inline size-4 align-text-bottom" /> en la
+                  esquina superior derecha para copiar el enlace o compartirlo
+                  directamente.
+                </p>
+                <p>
+                  Antes de enviarlo por WhatsApp, espera unos segundos a que
+                  cargue la previsualización del viaje: así tus contactos verán
+                  los detalles del viaje directamente en el chat.
+                </p>
+                <p>
+                  ¿Aún no estás en los grupos de WhatsApp?{' '}
+                  <a
+                    href="https://forms.gle/vYLeDmHUxX3Z73oC6"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-medium text-primary underline underline-offset-4 transition-opacity hover:opacity-80"
+                  >
+                    Únete aquí
+                    <ExternalLink className="size-3" />
+                  </a>
+                  .
+                </p>
+                <img
+                  src={previewTravel}
+                  alt="Previsualización de viaje en WhatsApp"
+                  className="mx-auto block w-4/5 rounded-lg border border-border/60 object-cover sm:w-80"
+                />
               </div>
             </AccordionContent>
           </AccordionItem>

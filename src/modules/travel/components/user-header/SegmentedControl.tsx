@@ -1,12 +1,13 @@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFilters } from '@/hooks/use-filters';
+import { getDirectionByHour, getNowInLima } from '@/lib/utils';
 
 export default function SegmentedControl() {
   const { filters, setFilters } = useFilters('/_layout/_auth/home');
 
   const getDefaultDirection = () => {
-    const hour = new Date().getHours();
-    return hour < 12 ? 'to_campus' : 'from_campus';
+    const hour = getNowInLima().getHours();
+    return getDirectionByHour(hour);
   };
 
   const currentDirection = filters.direction ?? getDefaultDirection();

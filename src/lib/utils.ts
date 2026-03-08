@@ -1,9 +1,17 @@
 import { type ClassValue, clsx } from 'clsx';
+import { toZonedTime } from 'date-fns-tz';
 import jsQR from 'jsqr';
 import { twMerge } from 'tailwind-merge';
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+export const LIMA_TIME_ZONE = 'America/Lima';
+
+export const getNowInLima = () => toZonedTime(new Date(), LIMA_TIME_ZONE);
+
+export const getDirectionByHour = (hour: number) =>
+  hour < 12 ? 'to_campus' : 'from_campus';
 
 export const getFallbackAvatar = (fullName: string | undefined) => {
   if (!fullName) return;

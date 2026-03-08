@@ -1,5 +1,5 @@
-export const getDefaultDate = (): Date => {
-  const now = new Date();
+export const getDefaultDate = (from: Date = new Date()): Date => {
+  const now = new Date(from);
 
   if (now.getHours() >= 23) {
     const tomorrow = new Date(now);

@@ -6,18 +6,8 @@ import {
   TopStackTitle,
 } from '@/components/layout/top-stack/TopStack';
 import NewTravel from '@/modules/travel/pages/new-travel/NewTravel';
-import { getDefaultDate } from '@/modules/travel/pages/new-travel/utils';
 
 export const Route = createFileRoute('/_layout/_auth/travel/new')({
-  loader: () => {
-    const datetime = getDefaultDate();
-    const direction = datetime.getHours() < 12 ? 'to_campus' : 'from_campus';
-    return {
-      datetime,
-      direction,
-    };
-  },
-
   component: RouteComponent,
 });
 

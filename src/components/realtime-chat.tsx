@@ -65,7 +65,7 @@ export const RealtimeChat = ({
   useEffect(() => {
     // Scroll to bottom whenever messages change
     scrollToBottom();
-  }, [allMessages, scrollToBottom]);
+  }, [scrollToBottom]);
 
   const handleSendMessage = useCallback(
     (e: React.FormEvent) => {

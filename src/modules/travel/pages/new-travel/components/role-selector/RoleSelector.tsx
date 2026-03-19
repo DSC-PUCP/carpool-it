@@ -1,7 +1,6 @@
 import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
-import { fi } from 'zod/v4/locales';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { DriverVehicle } from '@/core/models';
 import type { FormSchema } from '../../NewTravel';

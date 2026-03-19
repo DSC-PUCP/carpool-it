@@ -1,4 +1,4 @@
-import { redirect, useNavigate } from '@tanstack/react-router';
+import { redirect } from '@tanstack/react-router';
 import { env } from '@/env';
 import getSupabaseClient from '@/lib/supabase';
 import type { FileRoutesByTo } from '@/routeTree.gen';

@@ -1,24 +1,13 @@
 import { ClientOnly } from '@tanstack/react-router';
 import { Controller, useFormContext } from 'react-hook-form';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Field,
-  FieldContent,
-  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
-  FieldSet,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import type { DriverVehicle, UserLocation } from '@/core/models';
+import type { UserLocation } from '@/core/models';
 import {
   limitBoundaries,
   referencePoints,

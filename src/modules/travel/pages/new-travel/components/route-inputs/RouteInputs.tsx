@@ -12,10 +12,7 @@ import { Field, FieldError } from '@/components/ui/field';
 import { Label } from '@/components/ui/label';
 import { useLocations } from '@/hooks/use-locations';
 import MapSelector from '@/modules/travel/pages/new-travel/components/MapDialog';
-import {
-  getClosestReferencePoint,
-  isCampusLocation,
-} from '@/modules/travel/utils';
+import { isCampusLocation } from '@/modules/travel/utils';
 import type { FormSchema } from '../../NewTravel';
 
 export default function RouteInputs() {
@@ -62,7 +59,7 @@ export default function RouteInputs() {
                               : undefined
                           }
                           setPosition={({ lat, lng }) => {
-                            if (locations.length === 0)
+                            if (locations && locations.length === 0)
                               form.setValue('newLocation', true);
                             field.onChange({
                               lat,
@@ -142,7 +139,7 @@ export default function RouteInputs() {
                               : undefined
                           }
                           setPosition={({ lat, lng }) => {
-                            if (locations.length === 0)
+                            if (locations && locations.length === 0)
                               form.setValue('newLocation', true);
                             field.onChange({
                               lat,

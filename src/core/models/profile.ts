@@ -39,5 +39,5 @@ export interface RecurringTrip {
   id: string;
   datetime: Date;
   direction: TravelDirection;
-  recurrenceRule: string;
+  recurrenceRule: string | null;
 }

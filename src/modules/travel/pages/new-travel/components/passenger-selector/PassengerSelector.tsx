@@ -1,4 +1,4 @@
-import { Divide, Minus, Plus, Users } from 'lucide-react';
+import { Minus, Plus, Users } from 'lucide-react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

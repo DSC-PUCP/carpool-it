@@ -99,8 +99,8 @@ export const profileRepository: ProfileRepository = {
       id: loc.id,
       name: loc.name,
       coords: {
-        lat: (loc.coords.coordinates as [number, number])[1],
-        lon: (loc.coords.coordinates as [number, number])[0],
+        lat: (loc.coords as { coordinates: [number, number] }).coordinates[1],
+        lon: (loc.coords as { coordinates: [number, number] }).coordinates[0],
       },
     }));
 
@@ -168,7 +168,7 @@ export const profileRepository: ProfileRepository = {
         id: t.id,
         datetime: new Date(t.datetime),
         direction: t.direction,
-        recurrenceRule: t.recurrence_rule!,
+        recurrenceRule: t.recurrence_rule,
       }))
     );
   },

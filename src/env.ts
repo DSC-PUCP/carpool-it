@@ -2,6 +2,7 @@ import { createEnv } from '@t3-oss/env-core';
 import { z } from 'zod';
 
 export const env = createEnv({
+  // Server-only variables. Do not expose secrets with the VITE_ prefix.
   server: {
     SERVER_URL: z.url().optional(),
     SUPABASE_ANON: z.string().optional(),
@@ -13,6 +14,7 @@ export const env = createEnv({
    */
   clientPrefix: 'VITE_',
 
+  // Client-visible variables. These are bundled for browser usage.
   client: {
     VITE_SERVER_URL: z.string(),
     VITE_SUPABASE_URL: z.url(),

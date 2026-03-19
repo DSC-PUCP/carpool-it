@@ -1,4 +1,4 @@
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { QueryKeys } from '@/const/query-keys';
 import { ProfileService } from '@/modules/profile/services';

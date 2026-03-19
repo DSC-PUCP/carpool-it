@@ -49,7 +49,7 @@ export function useRealtimeChat({ roomName, username }: UseRealtimeChatProps) {
     return () => {
       supabase.removeChannel(newChannel);
     };
-  }, [roomName, username, supabase]);
+  }, [roomName, supabase]);
 
   const sendMessage = useCallback(
     async (content: string, location?: { lat: number; lng: number }) => {

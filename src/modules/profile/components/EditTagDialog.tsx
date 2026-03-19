@@ -28,7 +28,7 @@ export default function EditTagDialog() {
         setOpen(false);
         setTag('');
       },
-      onError: (error) => {
+      onError: (_error) => {
         toast.error('Ese tag ya está en uso, por favor elige otro.');
       },
     });

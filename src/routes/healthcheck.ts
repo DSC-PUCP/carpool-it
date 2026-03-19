@@ -5,6 +5,9 @@ import { env } from '@/env';
 
 type CheckResult = { ok: boolean; detail?: string };
 
+const getServerAnonKey = () =>
+  workersEnv.SUPABASE_ANON || env.SUPABASE_ANON || '';
+
 async function checkSupabaseReachability(
   supabaseUrl: string,
   anonKey: string
@@ -28,13 +31,17 @@ export const Route = createFileRoute('/healthcheck')({
     handlers: {
       GET: async () => {
         const supabaseUrl = env.VITE_SUPABASE_URL;
-        const anonKey = workersEnv.SUPABASE_ANON || env.SUPABASE_ANON || '';
+        const anonKey = getServerAnonKey();
 
         const checks: Record<string, CheckResult> = {
           supabase_reachability:
             supabaseUrl && anonKey
               ? await checkSupabaseReachability(supabaseUrl, anonKey)
-              : { ok: false, detail: 'Skipped — missing URL or key' },
+              : {
+                  ok: false,
+                  detail:
+                    'SUPABASE_ANON ausente. Configuralo con "wrangler secret put SUPABASE_ANON" para entornos deployados o en .env para desarrollo local.',
+                },
         };
 
         const allOk = Object.values(checks).every((c) => c.ok);

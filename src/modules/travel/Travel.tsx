@@ -10,7 +10,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty';
-import { cn } from '@/lib/utils';
+import { cn, getDirectionByHour, getNowInLima } from '@/lib/utils';
 import FilterChips from './components/filter-chips/FilterChips';
 import RideCard from './components/ride-card/RideCard';
 import RideCardSkeleton from './components/ride-card/RideCardSkeleton';
@@ -20,6 +20,11 @@ import { useListRooms } from './hooks/useListRooms';
 export default function Travel() {
   const { user } = useRouteContext({ from: '/_layout/_auth/home' });
   const { filters } = useLoaderData({ from: '/_layout/_auth/home' });
+  const resolvedFilters = {
+    ...filters,
+    direction:
+      filters.direction ?? getDirectionByHour(getNowInLima().getHours()),
+  };
   const {
     isError,
     data,
@@ -27,7 +32,7 @@ export default function Travel() {
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-  } = useListRooms(filters);
+  } = useListRooms(resolvedFilters);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
 

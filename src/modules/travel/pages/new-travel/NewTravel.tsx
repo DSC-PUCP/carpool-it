@@ -1,9 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  useLoaderData,
-  useNavigate,
-  useRouteContext,
-} from '@tanstack/react-router';
+import { useNavigate, useRouteContext } from '@tanstack/react-router';
 import { ArrowRight } from 'lucide-react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -14,7 +10,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useLocations } from '@/hooks/use-locations';
 import { useProfile } from '@/hooks/use-profile';
 import { useVehicle } from '@/hooks/use-vehicle';
-import { cn } from '@/lib/utils';
+import { cn, getDirectionByHour, getNowInLima } from '@/lib/utils';
 import { useCreateLocation } from '@/modules/profile/pages/location/hooks/useCreateLocation';
 import type { LatLngTuple } from '@/modules/travel/const';
 import { universityCoordinates } from '../../const';
@@ -26,6 +22,7 @@ import RoleSelector from './components/role-selector/RoleSelector';
 import RouteInputs from './components/route-inputs/RouteInputs';
 import { usePublishRide } from './hooks/usePublishRide';
 import { useSetDriver } from './hooks/useSetDriver';
+import { getDefaultDate } from './utils';
 
 export default function NewTravel() {
   const { user } = useRouteContext({
@@ -38,32 +35,39 @@ export default function NewTravel() {
   const { mutateAsync, isPending: isSettingDriver } = useSetDriver();
   const { mutate: locationMutate } = useCreateLocation();
   const navigation = useNavigate();
-  const { datetime, direction } = useLoaderData({
-    from: '/_layout/_auth/travel/new',
-  });
 
   const defaultRole = vehicleData
     ? 'offer'
     : ('request' as 'offer' | 'request');
   const defaultSeats = vehicleData ? vehicleData.seats : 1;
   const defaultPrice = vehicleData ? vehicleData.price : 5;
+  const nowInLima = getNowInLima();
+  const defaultDirection = getDirectionByHour(nowInLima.getHours());
+  const defaultDate = getDefaultDate(nowInLima);
 
   const defaultLocation = profileData?.locationId
     ? locationsData?.find((loc) => loc.id === profileData.locationId)?.coords
     : undefined;
+  const universityLat = universityCoordinates[0];
+  const universityLon = universityCoordinates[1];
   const universityLocation = {
-    lat: universityCoordinates[0],
-    lon: universityCoordinates[1],
+    lat: universityLat,
+    lon: universityLon,
   };
+
   const destination =
-    direction === 'to_campus' ? universityLocation : defaultLocation;
+    defaultDirection === 'to_campus'
+      ? universityLocation
+      : (defaultLocation ?? universityLocation);
   const origin =
-    direction === 'to_campus' ? defaultLocation : universityLocation;
-  const form = useForm({
+    defaultDirection === 'to_campus'
+      ? (defaultLocation ?? universityLocation)
+      : universityLocation;
+  const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       role: defaultRole,
-      date: datetime,
+      date: defaultDate,
       price: defaultPrice,
       seats: defaultSeats,
       origin,

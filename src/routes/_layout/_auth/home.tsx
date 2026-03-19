@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import z from 'zod';
 import { QueryKeys } from '@/const/query-keys';
+import { getDirectionByHour, getNowInLima } from '@/lib/utils';
 import { TravelService } from '@/modules/travel/services';
 import Travel from '@/modules/travel/Travel';
 
@@ -46,8 +47,8 @@ export const Route = createFileRoute('/_layout/_auth/home')({
     context: { queryClient, profileData, locationsData },
     deps,
   }) => {
-    const hour = new Date().getHours();
-    const defaultDirection = hour < 12 ? 'to_campus' : 'from_campus';
+    const hour = getNowInLima().getHours();
+    const defaultDirection = getDirectionByHour(hour);
     const defaultLocation = profileData?.locationId
       ? locationsData.find((loc) => loc.id === profileData.locationId)?.coords
       : undefined;

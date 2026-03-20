@@ -4,8 +4,8 @@ Gracias por aportar a carpool-it.
 
 ## Requisitos
 
-- Bun
-- Node.js 20+
+- Bun (https://bun.sh)
+- Docker Desktop (o Docker Engine)
 - Cuenta de Supabase (proyecto compartido o propio de desarrollo)
 - Cuenta de Cloudflare (solo para maintainers que despliegan)
 
@@ -17,15 +17,21 @@ Gracias por aportar a carpool-it.
 bun install
 ```
 
-2. Crea variables locales:
+2. Levanta Supabase local:
+
+```bash
+bun sb start
+```
+
+3. Crea variables locales:
 
 ```bash
 cp .env.example .env
 ```
 
-3. Completa `.env` con valores de desarrollo.
+4. Completa `.env` con valores de desarrollo (ver `docs/supabase-local.md`).
 
-4. Levanta el proyecto:
+5. Levanta el proyecto:
 
 ```bash
 bun run dev
@@ -44,6 +50,7 @@ bun run build
 - Arquitectura: `docs/architecture.md`
 - Estructura de carpetas: `docs/folder-structure.md`
 - Modelo de datos: `docs/data-model.md`
+- Supabase local y OAuth Google: `docs/supabase-local.md`
 
 ## Flujo recomendado de colaboracion
 

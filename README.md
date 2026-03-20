@@ -4,19 +4,30 @@ Aplicacion web de carpooling construida con TanStack Start (SSR), Cloudflare Wor
 
 ## Inicio rapido
 
+Prerequisitos:
+
+- Bun (https://bun.sh)
+- Docker Desktop (o Docker Engine) corriendo
+
 1. Instala dependencias:
 
 ```bash
 bun install
 ```
 
-2. Crea tu archivo de entorno local:
+2. Inicia Supabase local:
+
+```bash
+bun sb start
+```
+
+3. Crea tu archivo de entorno local:
 
 ```bash
 cp .env.example .env
 ```
 
-3. Completa valores segun la guia de seguridad y ejecuta en local:
+4. Completa valores segun la guia de seguridad y ejecuta en local:
 
 ```bash
 bun run dev
@@ -30,6 +41,7 @@ bun run dev
 - Arquitectura del sistema: ver `docs/architecture.md`.
 - Estructura de carpetas: ver `docs/folder-structure.md`.
 - Modelo de datos en Supabase: ver `docs/data-model.md`.
+- Supabase local + OAuth Google: ver `docs/supabase-local.md`.
 
 ## Scripts principales
 

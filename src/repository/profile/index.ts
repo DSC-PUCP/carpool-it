@@ -48,6 +48,7 @@ export const profileRepository: ProfileRepository = {
       color: vehicle.color,
       seats: vehicle.seats,
       price: vehicle.price,
+      route_description: vehicle.routeDescription?.trim() || null,
     });
 
     if (error) return Result.error(error);
@@ -79,6 +80,12 @@ export const profileRepository: ProfileRepository = {
       color: data.color ?? '',
       seats: data.seats ?? 0,
       price: data.price ?? 0,
+      routeDescription:
+        (
+          data as {
+            route_description?: string | null;
+          }
+        ).route_description ?? '',
       qrUrl: data.qr_url ?? '',
       walletAddress:
         (data as { address_wallet?: string | null }).address_wallet ??
@@ -188,10 +195,11 @@ export const profileRepository: ProfileRepository = {
     const { error } = await supabase
       .from('driver')
       .update({
-        model: vehicle.plate,
+        plate: vehicle.plate,
         color: vehicle.color,
         seats: vehicle.seats,
         price: vehicle.price,
+        route_description: vehicle.routeDescription?.trim() || null,
       })
       .eq('id', userId);
 

@@ -27,7 +27,11 @@ export default function PassengerSelector({
             <Users className="size-5" />
           </div>
           <div>
-            <p className="font-bold text-base">Pasajeros</p>
+            <p className="font-bold text-base">
+              {role === 'offer'
+                ? 'Asientos disponibles'
+                : 'Asientos requeridos'}
+            </p>
             <p className="text-xs text-muted-foreground">
               {role === 'offer'
                 ? '¿Cuántos asientos tienes disponibles?'

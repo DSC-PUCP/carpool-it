@@ -19,8 +19,6 @@ import { useLocations } from '@/hooks/use-locations';
 import { useProfile } from '@/hooks/use-profile';
 import { AuthService } from '@/modules/auth/services';
 import RideCard from '../../components/ride-card/RideCard';
-import { universityCoordinates } from '../../const';
-import { farestPointFromCampus, orderStopsByRoute } from '../../utils';
 import DriverPaymentMethods from './components/DriverPaymentMethods';
 import DriverRoleDialog from './components/DriverRoleDialog';
 import NextStepDialog from './components/NextStepDialog';
@@ -30,6 +28,17 @@ import { useJoinRide } from './hooks/useJoinRide';
 import { useLeaveRide } from './hooks/useLeaveRide';
 import { hasRatedDriver, useRateDriver } from './hooks/useRateDriver';
 import { useTravelDetail } from './hooks/useTravelDetail';
+import {
+  buildJoinRideInput,
+  canCurrentUserRateDriver,
+  getDefaultLocationForProfile,
+  getDriverPaymentState,
+  getOwnerTransferCandidate,
+  getSeatRecommendationForMember,
+  getTravelParticipationState,
+  type JoinRideRole,
+  shouldPromptForDriverRoleSelection,
+} from './utils';
 
 export default function TravelDetail() {
   const navigate = useNavigate();
@@ -48,55 +57,33 @@ export default function TravelDetail() {
     travel?.id ?? '',
     user?.id ?? ''
   );
+
   if (!travel) return <NotFound />;
-  const isMember = user
-    ? travel.stops.some((s) => s.userId === user.id)
-    : false;
-  const isOwner = user ? travel.ownerId === user.id : false;
 
-  const isToCampus = travel.direction === 'to_campus';
-  const driverStop = travel.stops.find((s) => s.userRole === 'driver');
-
-  const seatRecommendation = (() => {
-    const passengers = travel.stops.filter((s) => s.userRole === 'passenger');
-    if (passengers.length < 2 || !isMember) return null;
-
-    const stopsCoords = travel.stops.map((s) => s.stopCoords);
-    const relevantLocation = travel.driver
-      ? driverStop?.stopCoords
-      : farestPointFromCampus(stopsCoords);
-
-    const startPoint = isToCampus
-      ? (relevantLocation ?? stopsCoords[0])
-      : universityCoordinates;
-    const endPoint = isToCampus
-      ? universityCoordinates
-      : (relevantLocation ?? stopsCoords[0]);
-
-    if (!startPoint || !endPoint) return null;
-
-    const orderedPassengers = orderStopsByRoute(
-      passengers,
-      startPoint,
-      endPoint
-    );
-    const myIndex = user
-      ? orderedPassengers.findIndex((p) => p.userId === user.id)
-      : -1;
-
-    if (myIndex === -1) return null;
-
-    if (myIndex === 0) {
-      return 'Ubícate en el asiento derecho del vehículo para salir más fácilmente.';
-    }
-    return 'Ubícate en el asiento izquierdo del vehículo.';
-  })();
+  const { isMember, isOwner, isPassenger } = getTravelParticipationState(
+    travel,
+    user
+  );
+  const seatRecommendation = getSeatRecommendationForMember(
+    travel,
+    user,
+    isMember
+  );
+  const { driverQrUrl, driverUserId, hasDriverPaymentMethods } =
+    getDriverPaymentState(travel);
+  const canRateDriver = canCurrentUserRateDriver({
+    travel,
+    user,
+    isMember,
+    isPassenger,
+    hasRatedDriver,
+  });
+  const hasMultipleParticipants = travel.stops.length > 1;
 
   const handleJoin = () => {
-    if (!profile) return;
-    if (!locations) return;
     if (!user) return;
-    const defaultLocation = locations.find((l) => l.id === profile.locationId);
+
+    const defaultLocation = getDefaultLocationForProfile(profile, locations);
     if (!defaultLocation) {
       toast.error('Debes tener una zona predeterminada para unirte al viaje', {
         action: {
@@ -109,37 +96,37 @@ export default function TravelDetail() {
       });
       return;
     }
-    if (profile.isDriver) {
+
+    if (shouldPromptForDriverRoleSelection(profile)) {
       setIsDriverRoleDialogOpen(true);
       return;
     }
+
     joinWithRole('passenger');
   };
 
-  const joinWithRole = (role: 'driver' | 'passenger') => {
-    if (!user || !locations) return;
-    const defaultLocation = locations.find((l) => l.id === profile?.locationId);
+  const joinWithRole = (role: JoinRideRole) => {
+    if (!user) return;
+
+    const defaultLocation = getDefaultLocationForProfile(profile, locations);
     if (!defaultLocation) return;
+
     setIsDriverRoleDialogOpen(false);
-    joinRide({
-      roomId: travel.id,
-      userId: user.id,
-      role,
-      seats: 1,
-      price: travel.driver?.price ?? 0,
-      stopCoords: defaultLocation.coords,
-    });
+    joinRide(
+      buildJoinRideInput({
+        travel,
+        userId: user.id,
+        role,
+        defaultLocation,
+      })
+    );
   };
 
   const handleLeave = () => {
-    let newOwnerId: string | undefined;
     if (!user) return;
-    if (isOwner) {
-      const others = travel.stops.filter((s) => s.userId !== user.id);
-      if (others.length > 0) {
-        newOwnerId = others[0].userId;
-      }
-    }
+
+    const newOwnerId = getOwnerTransferCandidate(travel, user.id, isOwner);
+
     leaveRide(
       {
         roomId: travel.id,
@@ -156,21 +143,6 @@ export default function TravelDetail() {
   };
 
   const isLoading = isJoining || isLeaving;
-  const driverQrUrl = travel.driver?.qrUrl;
-  const driverUserId = travel.driver?.id;
-  const hasDriverPaymentMethods = !!driverUserId;
-  const isPassenger = user
-    ? travel.stops.some(
-        (s) => s.userId === user.id && s.userRole === 'passenger'
-      )
-    : false;
-  const canRateDriver =
-    !!travel.driver &&
-    !!driverUserId &&
-    isPassenger &&
-    isMember &&
-    !!user &&
-    !hasRatedDriver(travel.id, user.id);
 
   const handleRate = () => {
     if (!driverUserId || selectedRate === 0) return;
@@ -276,7 +248,7 @@ export default function TravelDetail() {
           </div>
         )}
 
-        {isMember && user && (
+        {isMember && user && hasMultipleParticipants && (
           <div className="flex-1 flex flex-col min-h-0 rounded-xl border">
             <TravelChat roomId={travel.id} username={user.fullName} />
           </div>

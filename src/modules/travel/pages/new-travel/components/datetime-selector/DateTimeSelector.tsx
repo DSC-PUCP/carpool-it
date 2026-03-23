@@ -1,20 +1,43 @@
 import { Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { useRef } from 'react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import Typography from '@/components/typography';
 import { Card, CardContent } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Label } from '@/components/ui/label';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { isCampusLocation } from '@/modules/travel/utils';
 import type { FormSchema } from '../../NewTravel';
 
 export default function DateTimeSelector() {
+  const isMobile = useIsMobile();
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  const timeInputRef = useRef<HTMLInputElement>(null);
   const { control } = useFormContext<FormSchema>();
-  const { origin } = useWatch({
+  const { origin, role } = useWatch({
     control,
     exact: true,
   });
   const isToCampus =
     origin && !isCampusLocation([origin.lat, origin.lon] as [number, number]);
+  const timeLabelPrefix = role === 'request' ? 'Hora deseada' : 'Hora';
+
+  const openInputPicker = (input: HTMLInputElement | null) => {
+    if (!input) return;
+
+    const picker = input as HTMLInputElement & {
+      showPicker?: () => void;
+    };
+
+    if (typeof picker.showPicker === 'function') {
+      picker.showPicker();
+      return;
+    }
+
+    input.focus();
+    input.click();
+  };
+
   return (
     <div className="flex gap-4 mb-6">
       <Controller
@@ -25,7 +48,14 @@ export default function DateTimeSelector() {
 
           return (
             <>
-              <Card className="relative flex-1 rounded-2xl p-4 cursor-pointer">
+              <Card
+                className="relative flex-1 rounded-2xl p-4 cursor-pointer"
+                onClick={() => {
+                  if (!isMobile) {
+                    openInputPicker(dateInputRef.current);
+                  }
+                }}
+              >
                 <CardContent className="p-0">
                   <Field>
                     <Label className="flex items-center gap-2 mb-1 text-primary">
@@ -36,6 +66,7 @@ export default function DateTimeSelector() {
                       {getRelativeLabel(value)}
                     </div>
                     <input
+                      ref={dateInputRef}
                       type="date"
                       className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                       value={toDateValue(value)}
@@ -50,19 +81,28 @@ export default function DateTimeSelector() {
                 </CardContent>
               </Card>
 
-              <Card className="relative flex-1 rounded-2xl p-4 cursor-pointer">
+              <Card
+                className="relative flex-1 rounded-2xl p-4 cursor-pointer"
+                onClick={() => {
+                  if (!isMobile) {
+                    openInputPicker(timeInputRef.current);
+                  }
+                }}
+              >
                 <CardContent className="p-0">
                   <Field>
                     <Label className="flex items-center gap-2 mb-1 text-primary">
                       <Clock className="size-4" />
                       <Typography variant="muted">
-                        Hora {isToCampus ? 'de llegada' : 'de salida'}
+                        {timeLabelPrefix}{' '}
+                        {isToCampus ? 'de llegada' : 'de salida'}
                       </Typography>
                     </Label>
                     <div className="text-lg font-bold">
                       {timeFormatter.format(value)}
                     </div>
                     <input
+                      ref={timeInputRef}
                       type="time"
                       className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                       step={300}

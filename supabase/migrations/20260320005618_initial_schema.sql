@@ -681,3 +681,9 @@ create policy "Enable update for users based on user_id"
   for update
   to authenticated
   using ((( SELECT auth.uid() AS uid) = user_id));
+
+-- Triggers
+CREATE TRIGGER on_auth_user_created
+AFTER INSERT ON auth.users
+FOR EACH ROW
+EXECUTE FUNCTION public.handle_new_user();

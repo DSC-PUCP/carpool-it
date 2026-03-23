@@ -42,7 +42,7 @@ export namespace ProfileService {
 
   export const updateVehicle = async (params: {
     userId: string;
-    vehicle: DriverVehicle;
+    vehicle: Omit<DriverVehicle, 'qrUrl' | 'walletAddress'>;
   }) => {
     const result = await profileRepository.updateVehicle(
       params.userId,

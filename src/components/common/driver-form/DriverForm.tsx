@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import type { DriverVehicle } from '@/core/models';
 import { vehicleColors } from './const';
 
@@ -90,6 +91,26 @@ export default function DriverForm() {
           <Field data-invalid={fieldState.invalid}>
             <FieldLabel>Precio por asiento</FieldLabel>
             <Input {...field} type="number" min={0} step={0.5} />
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+      <Controller
+        control={form.control}
+        name="routeDescription"
+        render={({ field, fieldState }) => (
+          <Field data-invalid={fieldState.invalid}>
+            <FieldLabel>Descripción de ruta (opcional)</FieldLabel>
+            <FieldDescription>
+              Comparte referencias, punto exacto o detalles útiles para
+              pasajeros.
+            </FieldDescription>
+            <Textarea
+              {...field}
+              value={field.value ?? ''}
+              placeholder="Ej. Recojo por la puerta principal de Plaza San Miguel"
+              rows={3}
+            />
             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
           </Field>
         )}

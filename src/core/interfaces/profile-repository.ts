@@ -27,7 +27,10 @@ export interface ProfileRepository {
   getRecurringTrips(userId: string): Promise<Result<RecurringTrip[]>>;
   deleteRecurringTrip(tripId: string): Promise<Result<void>>;
 
-  updateVehicle(userId: string, vehicle: DriverVehicle): Promise<Result<void>>;
+  updateVehicle(
+    userId: string,
+    vehicle: Omit<DriverVehicle, 'qrUrl' | 'walletAddress'>
+  ): Promise<Result<void>>;
   updatePaymentQr(userId: string, qrUrl: string): Promise<Result<void>>;
   updateMetamaskWallet(
     userId: string,

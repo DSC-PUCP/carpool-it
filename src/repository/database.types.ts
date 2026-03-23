@@ -23,6 +23,7 @@ export type Database = {
           qr_url: string | null;
           rating: number | null;
           rides: number;
+          route_description: string | null;
           seats: number | null;
           votes: number;
           wallet_address: string | null;
@@ -35,6 +36,7 @@ export type Database = {
           qr_url?: string | null;
           rating?: number | null;
           rides?: number;
+          route_description?: string | null;
           seats?: number | null;
           votes?: number;
           wallet_address?: string | null;
@@ -47,6 +49,7 @@ export type Database = {
           qr_url?: string | null;
           rating?: number | null;
           rides?: number;
+          route_description?: string | null;
           seats?: number | null;
           votes?: number;
           wallet_address?: string | null;
@@ -88,7 +91,7 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: 'location_user_id_fkey1';
+            foreignKeyName: 'location_user_id_fkey';
             columns: ['user_id'];
             isOneToOne: false;
             referencedRelation: 'profile';
@@ -184,48 +187,6 @@ export type Database = {
           {
             foreignKeyName: 'travel_room_owner_id_fkey1';
             columns: ['owner_id'];
-            isOneToOne: false;
-            referencedRelation: 'profile';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      travel_room_message: {
-        Row: {
-          content: string;
-          created_at: string;
-          id: string;
-          room_id: string;
-          type: string;
-          user_id: string;
-        };
-        Insert: {
-          content: string;
-          created_at?: string;
-          id?: string;
-          room_id: string;
-          type?: string;
-          user_id: string;
-        };
-        Update: {
-          content?: string;
-          created_at?: string;
-          id?: string;
-          room_id?: string;
-          type?: string;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'travel_room_message_room_id_fkey';
-            columns: ['room_id'];
-            isOneToOne: false;
-            referencedRelation: 'travel_room';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'travel_room_message_user_id_fkey';
-            columns: ['user_id'];
             isOneToOne: false;
             referencedRelation: 'profile';
             referencedColumns: ['id'];
@@ -335,6 +296,7 @@ export type Database = {
         user_tag: string | null;
         user_avatar: string | null;
         qr_url: string | null;
+        route_description: string | null;
       };
       travel_room_stop_type: {
         user_id: string | null;

@@ -40,6 +40,7 @@ export default function DialogDriver({
       color: '',
       seats: 4,
       price: 5,
+      routeDescription: '',
       confirmation: false,
     },
   });
@@ -108,6 +109,7 @@ const formSchema = z.object({
     .length(3, 'La placa debe tener 3 caracteres'),
   seats: z.coerce.number().min(1, 'El vehículo debe tener al menos un asiento'),
   price: z.coerce.number().min(0, 'El precio no puede ser negativo'),
+  routeDescription: z.string().trim().optional(),
   confirmation: z.boolean().refine((val) => val === true, {
     message: 'Debes aceptar que la información es correcta',
   }),

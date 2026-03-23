@@ -78,6 +78,7 @@ export default function TravelDetail() {
     isPassenger,
     hasRatedDriver,
   });
+  const hasMultipleParticipants = travel.stops.length > 1;
 
   const handleJoin = () => {
     if (!user) return;
@@ -247,7 +248,7 @@ export default function TravelDetail() {
           </div>
         )}
 
-        {isMember && user && (
+        {isMember && user && hasMultipleParticipants && (
           <div className="flex-1 flex flex-col min-h-0 rounded-xl border">
             <TravelChat roomId={travel.id} username={user.fullName} />
           </div>

@@ -20,6 +20,7 @@ export interface DriverVehicle {
   color: string;
   seats: number;
   price: number;
+  routeDescription?: string;
   qrUrl: string;
   walletAddress: string;
 }

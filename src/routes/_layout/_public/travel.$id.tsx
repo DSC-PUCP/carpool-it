@@ -2,6 +2,7 @@ import {
   createFileRoute,
   Link,
   notFound,
+  useLoaderData,
   useLocation,
 } from '@tanstack/react-router';
 import { isToday, isTomorrow } from 'date-fns';
@@ -18,13 +19,13 @@ import { Button } from '@/components/ui/button';
 import { QueryKeys } from '@/const/query-keys';
 import { env } from '@/env';
 import { universityLabel } from '@/modules/travel/const';
+import TravelNotFound from '@/modules/travel/pages/travel-detail/components/TravelNotFound';
 import TravelDetail from '@/modules/travel/pages/travel-detail/TravelDetail';
 import { TravelService } from '@/modules/travel/services';
 import {
   farestPointFromCampus,
   getClosestReferencePoint,
 } from '@/modules/travel/utils';
-import TravelNotFound from '@/modules/travel/pages/travel-detail/components/TravelNotFound';
 
 export const Route = createFileRoute('/_layout/_public/travel/$id')({
   component: RouteComponent,
@@ -127,17 +128,25 @@ export const Route = createFileRoute('/_layout/_public/travel/$id')({
       ],
     };
   },
-  notFoundComponent: TravelNotFound
+  notFoundComponent: TravelNotFound,
 });
 
 function RouteComponent() {
   const { url } = useLocation();
+  const travel = useLoaderData({ from: '/_layout/_public/travel/$id' });
+  const routeDescription = travel.driver?.routeDescription?.trim();
+
   const handleShare = async () => {
+    const shareText = routeDescription ?? '';
+    const clipboardText = routeDescription
+      ? `${url.href}\n${routeDescription}`
+      : url.href;
+
     if (navigator.share) {
       try {
         await navigator.share({
           title: document.title,
-          text: '',
+          text: shareText,
           url: url.href,
         });
       } catch (error) {
@@ -146,7 +155,7 @@ function RouteComponent() {
       }
     } else if (navigator.clipboard) {
       try {
-        await navigator.clipboard.writeText(url.href);
+        await navigator.clipboard.writeText(clipboardText);
         toast.success('Enlace copiado al portapapeles');
       } catch (error) {
         console.error('Error copying to clipboard:', error);

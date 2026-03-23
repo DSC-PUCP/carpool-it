@@ -32,6 +32,7 @@ export type DriverInfo = {
   rating: number;
   votes: number;
   price: number;
+  routeDescription?: string | null;
   qrUrl: string | null;
 } | null;
 

@@ -26,6 +26,7 @@ export namespace TravelMappers {
             rating: data.driver.rating as number,
             votes: data.driver.votes as number,
             price: data.driver.price as number,
+            routeDescription: data.driver.route_description as string | null,
             qrUrl: data.driver.qr_url as string | null,
           }
         : null,
@@ -67,6 +68,9 @@ export namespace TravelMappers {
                 rating: data.driver.rating as number,
                 votes: data.driver.votes as number,
                 price: data.driver.price as number,
+                routeDescription: data.driver.route_description as
+                  | string
+                  | null,
                 qrUrl: data.driver.qr_url as string | null,
               }
             : null,

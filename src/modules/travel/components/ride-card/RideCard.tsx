@@ -1,7 +1,7 @@
 import { Link, useRouteContext } from '@tanstack/react-router';
 import { format, isToday, isTomorrow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Armchair, CarTaxiFront, MapPinned, Star } from 'lucide-react';
+import { Armchair, CarTaxiFront, Info, MapPinned, Star } from 'lucide-react';
 import {
   Avatar,
   AvatarFallback,
@@ -10,6 +10,14 @@ import {
 } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -102,7 +110,7 @@ export default function RideCard(
     dateLabel = 'Mañana';
   }
 
-  const timeLabel = format(dateObj, 'HH:mm', { locale: es });
+  const timeLabel = format(dateObj, 'hh:mm a', { locale: es });
 
   const stopsCoords = stops.map((s) => s.stopCoords);
   const startPoint = isToCampus
@@ -125,6 +133,8 @@ export default function RideCard(
     .map((c) => c.join(','))
     .join('/')}`;
   const isOwnRide = user ? stops.some((s) => s.userId === user.id) : false;
+  const routeDescription = driver?.routeDescription?.trim();
+
   return (
     <Card>
       <CardContent className="p-4 space-y-4">
@@ -281,6 +291,22 @@ export default function RideCard(
             </div>
           </div>
           <div className="flex flex-col md:flex-row justify-start gap-2">
+            {routeDescription && (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button size="icon" variant="outline" className="h-8 w-8">
+                    <Info />
+                    <span className="sr-only">Ver descripción de ruta</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Descripción de la ruta</DialogTitle>
+                    <DialogDescription>{routeDescription}</DialogDescription>
+                  </DialogHeader>
+                </DialogContent>
+              </Dialog>
+            )}
             <Button size="sm" variant="ghost" className="text-xs" asChild>
               <a href={googleMapsUrl} target="_blank" rel="noreferrer">
                 <MapPinned /> Ver Ruta
@@ -295,7 +321,7 @@ export default function RideCard(
                   }}
                   viewTransition
                 >
-                  {isOwnRide ? 'Ver Mi Viaje' : 'Unirse al Viaje'}
+                  {isOwnRide ? 'Ver Mi Viaje' : 'Ver viaje'}
                 </Link>
               </Button>
             )}

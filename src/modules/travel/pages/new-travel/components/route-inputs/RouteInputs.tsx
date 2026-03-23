@@ -103,7 +103,7 @@ export default function RouteInputs() {
             </div>
           </div>
 
-          <div className="m-auto">
+          <div className="m-auto flex flex-col items-center gap-1">
             <Button
               variant="outline"
               type="button"
@@ -112,6 +112,9 @@ export default function RouteInputs() {
             >
               <ArrowUpDown />
             </Button>
+            <p className="text-[12px] text-muted-foreground leading-none">
+              Cambiar dirección
+            </p>
           </div>
 
           {/* Destination */}

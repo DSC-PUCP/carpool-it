@@ -24,6 +24,7 @@ import {
   farestPointFromCampus,
   getClosestReferencePoint,
 } from '@/modules/travel/utils';
+import TravelNotFound from '@/modules/travel/pages/travel-detail/components/TravelNotFound';
 
 export const Route = createFileRoute('/_layout/_public/travel/$id')({
   component: RouteComponent,
@@ -126,6 +127,7 @@ export const Route = createFileRoute('/_layout/_public/travel/$id')({
       ],
     };
   },
+  notFoundComponent: TravelNotFound
 });
 
 function RouteComponent() {

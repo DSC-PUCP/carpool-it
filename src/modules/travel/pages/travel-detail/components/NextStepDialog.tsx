@@ -41,12 +41,14 @@ export default function NextStepDialog({
   const currentStopIndex = travel.currentStop;
   const totalStops = orderedPassengers.length;
   const isLastStop = currentStopIndex >= totalStops + 1;
+  const canPassengerFinish = hasDriver && !isDriver && currentStopIndex > 0;
+  const shouldFinishAsDriver = isDriver || (!hasDriver && isOwner);
 
   const handleFinish = () => {
     finishRide({
       roomId: travel.id,
       userId: userId,
-      role: isDriver ? 'driver' : 'passenger',
+      role: shouldFinishAsDriver ? 'driver' : 'passenger',
     });
   };
 
@@ -78,6 +80,10 @@ export default function NextStepDialog({
   const isLoading = isFinishing || isSettingNext;
 
   if (hasDriver && !isDriver) {
+    if (!canPassengerFinish) {
+      return null;
+    }
+
     return (
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>

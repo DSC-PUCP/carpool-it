@@ -27,7 +27,7 @@ export default function LocationDialog({
   open,
   defaultValues,
 }: Props) {
-  const form = useForm({
+  const form = useForm<LocationFormSchema>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: defaultValues?.name ?? '',

@@ -1,3 +1,4 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useRouteContext } from '@tanstack/react-router';
 import { CircleAlert, Star } from 'lucide-react';
 import { useState } from 'react';
@@ -15,10 +16,13 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
+import { QueryKeys } from '@/const/query-keys';
 import { useLocations } from '@/hooks/use-locations';
 import { useProfile } from '@/hooks/use-profile';
 import { AuthService } from '@/modules/auth/services';
+import { ProfileService } from '@/modules/profile/services';
 import RideCard from '../../components/ride-card/RideCard';
+import DefaultLocationDialog from './components/DefaultLocationDialog';
 import DriverPaymentMethods from './components/DriverPaymentMethods';
 import DriverRoleDialog from './components/DriverRoleDialog';
 import NextStepDialog from './components/NextStepDialog';
@@ -45,8 +49,10 @@ export default function TravelDetail() {
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
   const [isRateDialogOpen, setIsRateDialogOpen] = useState(false);
   const [isDriverRoleDialogOpen, setIsDriverRoleDialogOpen] = useState(false);
+  const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false);
   const [selectedRate, setSelectedRate] = useState(0);
   const [hoveredRate, setHoveredRate] = useState(0);
+  const queryClient = useQueryClient();
   const { data: travel } = useTravelDetail();
   const { mutate: joinRide, isPending: isJoining } = useJoinRide();
   const { mutate: leaveRide, isPending: isLeaving } = useLeaveRide();
@@ -57,6 +63,18 @@ export default function TravelDetail() {
     travel?.id ?? '',
     user?.id ?? ''
   );
+  const { mutate: createLocation, isPending: isSavingLocation } = useMutation({
+    mutationFn: ProfileService.addLocation,
+    onError: (error) => {
+      toast.error(error.message || 'Error al guardar ubicación');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.LOCATIONS] });
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.PROFILE] });
+      setIsLocationDialogOpen(false);
+      toast.success('Ubicación predeterminada guardada');
+    },
+  });
 
   if (!travel) return <NotFound />;
 
@@ -78,6 +96,10 @@ export default function TravelDetail() {
     isPassenger,
     hasRatedDriver,
   });
+  const locationPrompt =
+    travel.direction === 'to_campus'
+      ? 'Elige tu zona de recojo'
+      : 'Elige tu destino';
   const hasMultipleParticipants = travel.stops.length > 1;
 
   const handleJoin = () => {
@@ -85,15 +107,7 @@ export default function TravelDetail() {
 
     const defaultLocation = getDefaultLocationForProfile(profile, locations);
     if (!defaultLocation) {
-      toast.error('Debes tener una zona predeterminada para unirte al viaje', {
-        action: {
-          label: 'Elegir zona',
-          onClick: () =>
-            navigate({
-              to: '/profile/locations',
-            }),
-        },
-      });
+      setIsLocationDialogOpen(true);
       return;
     }
 
@@ -164,6 +178,23 @@ export default function TravelDetail() {
           onOpenChange={setIsDriverRoleDialogOpen}
           onConfirm={joinWithRole}
           isPending={isJoining}
+        />
+        <DefaultLocationDialog
+          open={isLocationDialogOpen}
+          onOpenChange={setIsLocationDialogOpen}
+          prompt={locationPrompt}
+          isPending={isSavingLocation}
+          onConfirm={(coords) => {
+            if (!user) return;
+            createLocation({
+              userId: user.id,
+              location: {
+                name: 'Casa',
+                coords,
+              },
+              setDefault: true,
+            });
+          }}
         />
         {seatRecommendation && (
           <Alert>

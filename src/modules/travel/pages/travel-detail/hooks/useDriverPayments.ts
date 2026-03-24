@@ -5,7 +5,17 @@ import { ProfileService } from '@/modules/profile/services';
 export const useDriverPayments = (driverId?: string) => {
   return useQuery({
     queryKey: [QueryKeys.PAYMENTS, driverId],
-    queryFn: () => ProfileService.getPayments(driverId as string),
+    queryFn: async () => {
+      try {
+        return await ProfileService.getPayments(driverId as string);
+      } catch {
+        return {
+          qrUrl: null,
+          metamaskAddress: null,
+        };
+      }
+    },
     enabled: !!driverId,
+    retry: false,
   });
 };

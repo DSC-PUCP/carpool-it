@@ -1,14 +1,12 @@
-import { isToday, isTomorrow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { formatInTimeZone } from 'date-fns-tz';
 import type { TravelRoom } from '@/core/models';
+import { getRelativeDayLabelInTimeZone, LIMA_TIME_ZONE } from '@/lib/utils';
 import { universityLabel } from '@/modules/travel/const';
 import {
   farestPointFromCampus,
   getClosestReferencePoint,
 } from '@/modules/travel/utils';
-
-const LIMA_TZ = 'America/Lima';
 
 export default function RideCardOg(props: TravelRoom) {
   const { direction, datetime, driver, stops } = props;
@@ -40,16 +38,14 @@ export default function RideCardOg(props: TravelRoom) {
 
   const dateObj = new Date(datetime);
 
-  const dateInLima = toZonedTime(dateObj, LIMA_TZ);
-
-  let dateLabel = formatInTimeZone(dateObj, LIMA_TZ, "d 'de' MMMM", {
+  let dateLabel = formatInTimeZone(dateObj, LIMA_TIME_ZONE, "d 'de' MMMM", {
     locale: es,
   });
 
-  if (isToday(dateInLima)) dateLabel = 'Hoy';
-  else if (isTomorrow(dateInLima)) dateLabel = 'Mañana';
+  const relativeDayLabel = getRelativeDayLabelInTimeZone(dateObj);
+  if (relativeDayLabel) dateLabel = relativeDayLabel;
 
-  const timeLabel = formatInTimeZone(dateObj, LIMA_TZ, 'hh:mm a', {
+  const timeLabel = formatInTimeZone(dateObj, LIMA_TIME_ZONE, 'hh:mm a', {
     locale: es,
   });
 
@@ -84,7 +80,7 @@ export default function RideCardOg(props: TravelRoom) {
         height: '100%',
         width: '100%',
         background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-        padding: '60px 160px',
+        padding: '56px 120px',
         fontFamily: 'sans-serif',
       }}
     >
@@ -94,13 +90,16 @@ export default function RideCardOg(props: TravelRoom) {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'flex-start',
-          marginBottom: '60px',
+          gap: '28px',
+          marginBottom: '52px',
         }}
       >
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
+            flex: 1,
+            minWidth: 0,
           }}
         >
           <div
@@ -118,8 +117,9 @@ export default function RideCardOg(props: TravelRoom) {
           <div
             style={{
               display: 'flex',
-              fontSize: '56px',
+              fontSize: '44px',
               fontWeight: '800',
+              lineHeight: '1.15',
               color: '#1e293b',
             }}
           >
@@ -133,11 +133,12 @@ export default function RideCardOg(props: TravelRoom) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              flexShrink: 0,
               backgroundColor: '#6366f1',
               color: 'white',
-              padding: '16px 32px',
+              padding: '14px 24px',
               borderRadius: '20px',
-              fontSize: '42px',
+              fontSize: '36px',
               fontWeight: 'bold',
             }}
           >

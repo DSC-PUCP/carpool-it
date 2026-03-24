@@ -1,5 +1,5 @@
 import { type ClassValue, clsx } from 'clsx';
-import { toZonedTime } from 'date-fns-tz';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import jsQR from 'jsqr';
 import { twMerge } from 'tailwind-merge';
 export function cn(...inputs: ClassValue[]) {
@@ -9,6 +9,31 @@ export function cn(...inputs: ClassValue[]) {
 export const LIMA_TIME_ZONE = 'America/Lima';
 
 export const getNowInLima = () => toZonedTime(new Date(), LIMA_TIME_ZONE);
+
+export const getRelativeDayLabelInTimeZone = (
+  date: Date | string | number,
+  timeZone: string = LIMA_TIME_ZONE
+) => {
+  const targetDate = new Date(date);
+
+  if (Number.isNaN(targetDate.getTime())) return null;
+
+  const toDateKey = (value: Date) =>
+    formatInTimeZone(value, timeZone, 'yyyy-MM-dd');
+
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const targetKey = toDateKey(targetDate);
+  const todayKey = toDateKey(now);
+  const tomorrowKey = toDateKey(tomorrow);
+
+  if (targetKey === todayKey) return 'Hoy';
+  if (targetKey === tomorrowKey) return 'Mañana';
+
+  return null;
+};
 
 export const getDirectionByHour = (hour: number) =>
   hour < 12 ? 'to_campus' : 'from_campus';

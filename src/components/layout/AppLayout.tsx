@@ -9,15 +9,14 @@ export default function AppLayout({ children }: PropsWithChildren) {
   const { pathname } = useLocation();
   const istravelRoom =
     pathname === '/travel/room' || pathname.startsWith('/travel/room/');
-  const isTravelDetail =
-    pathname.startsWith('/travel/') && pathname !== '/travel/new';
+  const isTravelDetailOrNew = pathname.startsWith('/travel/');
   return (
     <div className="flex flex-col h-dvh w-full">
       <Activity mode={isMobile ? 'hidden' : 'visible'}>
         <SidebarTrigger />
       </Activity>
       {children}{' '}
-      {!isTravelDetail && (
+      {!isTravelDetailOrNew && (
         <Activity mode={isMobile && !istravelRoom ? 'visible' : 'hidden'}>
           <AppNavbar />
         </Activity>

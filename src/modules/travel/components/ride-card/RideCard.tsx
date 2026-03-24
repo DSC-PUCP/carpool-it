@@ -1,6 +1,6 @@
 import { Link, useRouteContext } from '@tanstack/react-router';
-import { format, isToday, isTomorrow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatInTimeZone } from 'date-fns-tz';
 import { Armchair, CarTaxiFront, Info, MapPinned, Star } from 'lucide-react';
 import {
   Avatar,
@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import type { TravelRoom } from '@/core/models';
-import { cn } from '@/lib/utils';
+import { cn, getRelativeDayLabelInTimeZone, LIMA_TIME_ZONE } from '@/lib/utils';
 import { universityCoordinates, universityLabel } from '../../const';
 import {
   farestPointFromCampus,
@@ -101,16 +101,19 @@ export default function RideCard(
     ? `***-${driver.plate} • ${driver.color}`
     : 'Vehículo externo';
 
-  const dateObj = datetime;
-  let dateLabel = format(dateObj, "d 'de' MMMM", { locale: es });
+  const dateObj = new Date(datetime);
+  let dateLabel = formatInTimeZone(dateObj, LIMA_TIME_ZONE, "d 'de' MMMM", {
+    locale: es,
+  });
 
-  if (isToday(dateObj)) {
-    dateLabel = 'Hoy';
-  } else if (isTomorrow(dateObj)) {
-    dateLabel = 'Mañana';
+  const relativeDayLabel = getRelativeDayLabelInTimeZone(dateObj);
+  if (relativeDayLabel) {
+    dateLabel = relativeDayLabel;
   }
 
-  const timeLabel = format(dateObj, 'hh:mm a', { locale: es });
+  const timeLabel = formatInTimeZone(dateObj, LIMA_TIME_ZONE, 'hh:mm a', {
+    locale: es,
+  });
 
   const stopsCoords = stops.map((s) => s.stopCoords);
   const startPoint = isToCampus

@@ -44,7 +44,9 @@ export default function DateTimeSelector() {
         control={control}
         name="date"
         render={({ field }) => {
-          const value = field.value || new Date();
+          const isValidDate =
+            field.value instanceof Date && !Number.isNaN(field.value.getTime());
+          const value = isValidDate ? field.value : new Date();
 
           return (
             <>
@@ -71,9 +73,22 @@ export default function DateTimeSelector() {
                       className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                       value={toDateValue(value)}
                       onChange={(e) => {
+                        if (!e.target.value) {
+                          return;
+                        }
+
                         const [y, m, d] = e.target.value.split('-').map(Number);
+                        if ([y, m, d].some(Number.isNaN)) {
+                          return;
+                        }
+
                         const next = new Date(value);
                         next.setFullYear(y, m - 1, d);
+
+                        if (Number.isNaN(next.getTime())) {
+                          return;
+                        }
+
                         field.onChange(next);
                       }}
                     />
@@ -108,9 +123,22 @@ export default function DateTimeSelector() {
                       step={300}
                       value={toTimeValue(value)}
                       onChange={(e) => {
+                        if (!e.target.value) {
+                          return;
+                        }
+
                         const [h, min] = e.target.value.split(':').map(Number);
+                        if ([h, min].some(Number.isNaN)) {
+                          return;
+                        }
+
                         const next = new Date(value);
                         next.setHours(h, min);
+
+                        if (Number.isNaN(next.getTime())) {
+                          return;
+                        }
+
                         field.onChange(next);
                       }}
                     />

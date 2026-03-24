@@ -38,6 +38,14 @@ export const referencePoints: ReferencePoint[] = [
     cords: [-12.0917344, -77.0337999],
   },
   {
+    label: 'Clinica Ricardo Palma',
+    cords: [-12.090402762021041, -77.0182332882948],
+  },
+  {
+    label: 'Británico San Borja',
+    cords: [-12.08732049586869, -76.99738460178936],
+  },
+  {
     label: 'Ovalo Higereta',
     cords: [-12.129198, -77.000736],
   },
@@ -122,10 +130,6 @@ export const referencePoints: ReferencePoint[] = [
     cords: [-11.95705, -77.04937],
   },
   {
-    label: 'Mun. de San Luis',
-    cords: [-12.07544, -76.99358],
-  },
-  {
     label: 'Mun. de San Juan de Miraflores',
     cords: [-12.16296, -76.96361],
   },
@@ -144,10 +148,6 @@ export const referencePoints: ReferencePoint[] = [
   {
     label: 'Mun. de Miraflores',
     cords: [-12.12797, -77.02491],
-  },
-  {
-    label: 'VIDENA San Luis',
-    cords: [-12.080741, -77.000165],
   },
   {
     label: 'Mun. de Lince',

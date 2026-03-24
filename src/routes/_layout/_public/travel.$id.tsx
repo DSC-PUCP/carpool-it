@@ -5,9 +5,8 @@ import {
   useLoaderData,
   useLocation,
 } from '@tanstack/react-router';
-import { isToday, isTomorrow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { formatInTimeZone } from 'date-fns-tz';
 import { ArrowLeft, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -18,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { QueryKeys } from '@/const/query-keys';
 import { env } from '@/env';
+import { getRelativeDayLabelInTimeZone, LIMA_TIME_ZONE } from '@/lib/utils';
 import { universityLabel } from '@/modules/travel/const';
 import TravelNotFound from '@/modules/travel/pages/travel-detail/components/TravelNotFound';
 import TravelDetail from '@/modules/travel/pages/travel-detail/TravelDetail';
@@ -62,23 +62,16 @@ export const Route = createFileRoute('/_layout/_public/travel/$id')({
     }, 0);
     const availableSeats = Math.max(0, totalSeats - occupiedSeats);
 
-    const LIMA_TZ = 'America/Lima';
-
     const dateObj = new Date(datetime);
 
-    const dateInLima = toZonedTime(dateObj, LIMA_TZ);
-
-    let dateLabel = formatInTimeZone(dateObj, LIMA_TZ, "d 'de' MMM", {
+    let dateLabel = formatInTimeZone(dateObj, LIMA_TIME_ZONE, "d 'de' MMM", {
       locale: es,
     });
 
-    if (isToday(dateInLima)) {
-      dateLabel = 'Hoy';
-    } else if (isTomorrow(dateInLima)) {
-      dateLabel = 'Mañana';
-    }
+    const relativeDayLabel = getRelativeDayLabelInTimeZone(dateObj);
+    if (relativeDayLabel) dateLabel = relativeDayLabel;
 
-    const timeLabel = formatInTimeZone(dateObj, LIMA_TZ, 'hh:mm a', {
+    const timeLabel = formatInTimeZone(dateObj, LIMA_TIME_ZONE, 'hh:mm a', {
       locale: es,
     });
 
@@ -137,30 +130,21 @@ function RouteComponent() {
   const routeDescription = travel.driver?.routeDescription?.trim();
 
   const handleShare = async () => {
-    const shareText = routeDescription ?? '';
     const clipboardText = routeDescription
       ? `${url.href}\n${routeDescription}`
       : url.href;
 
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: document.title,
-          text: shareText,
-          url: url.href,
-        });
-      } catch (error) {
-        console.error('Error sharing:', error);
-        toast.error('Error al compartir el viaje');
-      }
-    } else if (navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(clipboardText);
-        toast.success('Enlace copiado al portapapeles');
-      } catch (error) {
-        console.error('Error copying to clipboard:', error);
-        toast.error('Error al copiar el enlace');
-      }
+    if (!navigator.clipboard) {
+      toast.error('Tu navegador no permite copiar al portapapeles');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(clipboardText);
+      toast.success('Enlace copiado al portapapeles');
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      toast.error('Error al copiar el enlace');
     }
   };
   return (

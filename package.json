@@ -117,5 +117,8 @@
     "vitest": "4.0.17",
     "web-vitals": "5.1.0",
     "wrangler": "4.75.0"
+  },
+  "lint-staged": {
+    "*": "bun check"
   }
 }

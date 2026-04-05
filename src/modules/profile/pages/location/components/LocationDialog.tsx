@@ -52,9 +52,10 @@ export default function LocationDialog({
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Agregar Ubicación</DialogTitle>
+            <DialogTitle>Agregar Zona</DialogTitle>
             <DialogDescription>
-              Guarda una nueva ubicación para usarla en tus viajes.
+              Guarda una nueva zona para usarla en tus viajes, evita poner tu
+              ubicación exacta por privacidad
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
@@ -62,7 +63,7 @@ export default function LocationDialog({
           </form>
           <DialogFooter>
             <DialogClose>Cancelar</DialogClose>
-            <Button onClick={handleSubmit}>Guardar ubicación</Button>
+            <Button onClick={handleSubmit}>Guardar zona</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

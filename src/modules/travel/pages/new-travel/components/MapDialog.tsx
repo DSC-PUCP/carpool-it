@@ -59,7 +59,10 @@ export default function MapDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Mapa</DialogTitle>
-          <DialogDescription>Elija una zona de referencia</DialogDescription>
+          <DialogDescription>
+            Elija una zona de referencia, evite poner su ubicación exacta por
+            privacidad
+          </DialogDescription>
         </DialogHeader>
 
         <MapSelector

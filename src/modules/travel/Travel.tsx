@@ -20,11 +20,7 @@ import { useListRooms } from './hooks/useListRooms';
 export default function Travel() {
   const { user } = useRouteContext({ from: '/_layout/_auth/home' });
   const { filters } = useLoaderData({ from: '/_layout/_auth/home' });
-  const resolvedFilters = {
-    ...filters,
-    direction:
-      filters.direction ?? getDirectionByHour(getNowInLima().getHours()),
-  };
+
   const {
     isError,
     data,
@@ -32,7 +28,7 @@ export default function Travel() {
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-  } = useListRooms(resolvedFilters);
+  } = useListRooms(filters);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
 

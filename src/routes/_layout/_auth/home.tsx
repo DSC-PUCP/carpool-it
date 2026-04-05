@@ -63,7 +63,7 @@ export const Route = createFileRoute('/_layout/_auth/home')({
     const filters = {
       direction: deps.direction ?? defaultDirection,
       datetime: deps.datetime,
-      onlyOffers: profileData?.isDriver ? false : deps.onlyOffers,
+      onlyOffers: profileData?.isDriver ? false : (deps.onlyOffers ?? true),
       limit: deps.limit ?? 5,
       offset: deps.offset ?? 0,
       location: resolvedLocation,

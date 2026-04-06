@@ -1,10 +1,7 @@
---
--- Name: get_available_seats(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
 CREATE FUNCTION public.get_available_seats(p_room_id uuid) RETURNS integer
-    LANGUAGE plpgsql
-    AS $$DECLARE
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
   v_driver_id uuid;
   v_capacity int;
   v_taken_seats int;
@@ -37,71 +34,77 @@ BEGIN
 
   -- devolver asientos disponibles
   RETURN v_capacity - v_taken_seats;
-END;$$;
+END;
+$$;
 
 
 --
+-- TOC entry 1580 (class 1255 OID 52663)
 -- Name: get_travel_room_detail(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.get_travel_room_detail(p_id uuid) RETURNS TABLE(id uuid, owner_id uuid, direction public.travel_direction, datetime timestamp with time zone, recurrence_rule text, current_stop smallint, stops public.travel_room_stop_type[], driver public.driver_type)
-    LANGUAGE plpgsql
-    AS $$BEGIN
-    RETURN QUERY
-    SELECT
-        tr.id,
-        tr.owner_id,
-        tr.direction,
-        tr.datetime,
-        tr.recurrence_rule,
-        tr.current_stop,
-        (
-            SELECT ARRAY_AGG(
-              ROW(
-                trs.user_id,
-                trs.user_role,
-                ARRAY[ST_Y(trs.stop_coords), ST_X(trs.stop_coords)],
-                trs.seats,
-                pf.tag,
-                pf.avatar
-              )::travel_room_stop_type
-              ORDER BY trs.created_at ASC
-            )
-            FROM travel_room_stop trs
-            JOIN public.profile pf ON pf.id = trs.user_id
-            WHERE trs.room_id = tr.id
-        ) AS stops,
-        (
-            SELECT ROW(
-              d.id,
-              d.plate,
-              d.color,
-              d.seats,
-              d.rides,
-              d.rating,
-              d.votes,
-              d.price,
-              pf.tag,
-              pf.avatar,
-              d.qr_url
-            )::driver_type
-            FROM driver d
-            JOIN public.profile pf ON pf.id = d.id
-            WHERE d.id = (
-                SELECT trs.user_id
-                FROM travel_room_stop trs
-                WHERE trs.room_id = tr.id
-                  AND trs.user_role = 'driver'
-                LIMIT 1
-            )
-        ) AS driver
-    FROM travel_room tr
-    WHERE tr.id = p_id
-      AND tr.active = TRUE;
-END;$$;
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+    return query
+  select
+    tr.id,
+    tr.owner_id,
+    tr.direction,
+    tr.datetime,
+    tr.recurrence_rule,
+    tr.current_stop,
+    (
+      select array_agg(
+        row(
+          trs.user_id,
+          trs.user_role,
+          array[st_y(trs.stop_coords), st_x(trs.stop_coords)],
+          trs.seats,
+          pf.tag,
+          pf.avatar
+        )::travel_room_stop_type
+        order by trs.created_at asc
+      )
+      from travel_room_stop trs
+      join public.profile pf on pf.id = trs.user_id
+      where trs.room_id = tr.id
+    ) as stops,
+    (
+      select row(
+        d.id,
+        d.plate,
+        d.color,
+        d.seats,
+        d.rides,
+        d.rating,
+        d.votes,
+        d.price,
+        pf.tag,
+        pf.avatar,
+        d.qr_url,
+        d.route_description
+      )::driver_type
+      from driver d
+      join public.profile pf on pf.id = d.id
+      where d.id = (
+        select trs.user_id
+        from travel_room_stop trs
+        where trs.room_id = tr.id
+          and trs.user_role = 'driver'
+        limit 1
+      )
+    ) as driver
+  from travel_room tr
+  where tr.id = p_id
+    and tr.active = true;
+END;
+$$;
 
 
 --
+-- TOC entry 1578 (class 1255 OID 42423)
 -- Name: handle_new_user(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -116,6 +119,7 @@ end;$$;
 
 
 --
+-- TOC entry 1585 (class 1255 OID 64832)
 -- Name: increment_profile_rides(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -132,6 +136,7 @@ END;$$;
 
 
 --
+-- TOC entry 1593 (class 1255 OID 78706)
 -- Name: rate_driver(uuid, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -147,23 +152,19 @@ END;$$;
 
 
 --
+-- TOC entry 1594 (class 1255 OID 78713)
 -- Name: search_travel_rooms(public.travel_direction, double precision, double precision, timestamp with time zone, boolean, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.search_travel_rooms(p_direction public.travel_direction DEFAULT NULL::public.travel_direction, p_lat double precision DEFAULT NULL::double precision, p_lon double precision DEFAULT NULL::double precision, p_date timestamp with time zone DEFAULT NULL::timestamp with time zone, p_only_offers boolean DEFAULT NULL::boolean, p_limit integer DEFAULT 5, p_offset integer DEFAULT 0) RETURNS jsonb
-    LANGUAGE plpgsql
-    AS $$
-declare
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$declare
   v_total int;
   v_total_pages int;
   v_page int;
   v_next int;
   v_travels jsonb;
 begin
-
-  -------------------------
-  -- BASE FILTERED DATA
-  -------------------------
   with base as (
     select tr.*
     from travel_room tr
@@ -177,18 +178,22 @@ begin
             select 1
             from travel_room_stop trs
             where trs.room_id = tr.id
-            and trs.user_role = 'driver'
+              and trs.user_role = 'driver'
+          )
+        )
+        or (
+          p_only_offers = false
+          and not exists (
+            select 1
+            from travel_room_stop trs
+            where trs.room_id = tr.id
+              and trs.user_role = 'driver'
           )
         )
       )
   )
-  select count(*)
-  into v_total
-  from base;
+  select count(*) into v_total from base;
 
-  -------------------------
-  -- PAGINATION
-  -------------------------
   v_page := floor(p_offset / p_limit) + 1;
 
   if v_total = 0 then
@@ -203,9 +208,6 @@ begin
     v_next := p_offset + p_limit;
   end if;
 
-  -------------------------
-  -- FETCH DATA
-  -------------------------
   with base as (
     select tr.*
     from travel_room tr
@@ -219,7 +221,16 @@ begin
             select 1
             from travel_room_stop trs
             where trs.room_id = tr.id
-            and trs.user_role = 'driver'
+              and trs.user_role = 'driver'
+          )
+        )
+        or (
+          p_only_offers = false
+          and not exists (
+            select 1
+            from travel_room_stop trs
+            where trs.room_id = tr.id
+              and trs.user_role = 'driver'
           )
         )
       )
@@ -233,10 +244,6 @@ begin
       tr.direction,
       tr.datetime,
       tr.recurrence_rule,
-
-      -------------------------
-      -- STOPS
-      -------------------------
       (
         select array_agg(
           row(
@@ -252,10 +259,6 @@ begin
         join public.profile pf on pf.id = trs.user_id
         where trs.room_id = tr.id
       ) as stops,
-
-      -------------------------
-      -- DRIVER
-      -------------------------
       (
         select row(
           d.id,
@@ -268,7 +271,8 @@ begin
           d.price,
           pf.tag,
           pf.avatar,
-          d.qr_url
+          d.qr_url,
+          d.route_description
         )::driver_type
         from driver d
         join public.profile pf on pf.id = d.id
@@ -276,17 +280,12 @@ begin
           select trs.user_id
           from travel_room_stop trs
           where trs.room_id = tr.id
-          and trs.user_role = 'driver'
+            and trs.user_role = 'driver'
           limit 1
         )
       ) as driver,
-
-      -------------------------
-      -- RELEVANCE SCORE
-      -------------------------
       (
         (case when p_direction is not null and tr.direction = p_direction then 1 else 0 end) +
-
         (case
           when p_lat is not null and p_lon is not null then
             1.0 / (
@@ -302,28 +301,19 @@ begin
             )
           else 0
         end) +
-
         (case
           when p_date is not null then
             1.0 / (1.0 + abs(extract(epoch from (tr.datetime - p_date))))
           else 0
         end) +
-
         (case when tr.recurrence_rule is null then 0.5 else 0 end)
-
       ) as relevance_score
-
     from base tr
-
     order by relevance_score desc, tr.created_at desc
     limit p_limit
     offset p_offset
-
   ) t;
 
-  -------------------------
-  -- RETURN JSON
-  -------------------------
   return jsonb_build_object(
     'travels', coalesce(v_travels, '[]'::jsonb),
     'metadata', jsonb_build_object(
@@ -333,6 +323,46 @@ begin
       'next', v_next
     )
   );
+end;$$;
 
+
+--
+-- TOC entry 1595 (class 1255 OID 95565)
+-- Name: set_updated_at_push_device_token(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_updated_at_push_device_token() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin
+  new.updated_at := now();
+  return new;
 end;
+$$;
+
+
+--
+-- TOC entry 1596 (class 1255 OID 105736)
+-- Name: validate_driver_exists(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.validate_driver_exists() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  -- Solo validar si el nuevo valor de is_driver es true
+  IF NEW.is_driver = true THEN
+    -- Verificar existencia en la tabla driver
+    IF NOT EXISTS (
+      SELECT 1
+      FROM public.driver d
+      WHERE d.id = NEW.id
+    ) THEN
+      -- Cancelar la operación
+      RAISE EXCEPTION 'No existe un registro en driver para el usuario %', NEW.id;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
 $$;

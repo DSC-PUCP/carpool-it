@@ -1,18 +1,8 @@
---
--- Name: public; Type: SCHEMA; Schema: -; Owner: -
---
-
 CREATE SCHEMA IF NOT EXISTS public;
 
 
 --
--- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
---
-
-COMMENT ON SCHEMA public IS 'standard public schema';
-
-
---
+-- TOC entry 2269 (class 1247 OID 49275)
 -- Name: driver_type; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -27,11 +17,13 @@ CREATE TYPE public.driver_type AS (
 	price numeric,
 	user_tag text,
 	user_avatar text,
-	qr_url text
+	qr_url text,
+	route_description text
 );
 
 
 --
+-- TOC entry 2316 (class 1247 OID 40074)
 -- Name: location_type; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -42,6 +34,7 @@ CREATE TYPE public.location_type AS ENUM (
 
 
 --
+-- TOC entry 2275 (class 1247 OID 40126)
 -- Name: travel_direction; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -52,6 +45,7 @@ CREATE TYPE public.travel_direction AS ENUM (
 
 
 --
+-- TOC entry 2278 (class 1247 OID 40132)
 -- Name: user_role; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -62,6 +56,7 @@ CREATE TYPE public.user_role AS ENUM (
 
 
 --
+-- TOC entry 2313 (class 1247 OID 45916)
 -- Name: travel_room_stop_type; Type: TYPE; Schema: public; Owner: -
 --
 

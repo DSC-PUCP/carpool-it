@@ -19,6 +19,13 @@ export const env = createEnv({
     VITE_SERVER_URL: z.string(),
     VITE_SUPABASE_URL: z.url(),
     VITE_SUPABASE_KEY: z.string(),
+    VITE_FIREBASE_API_KEY: z.string(),
+    VITE_FIREBASE_AUTH_DOMAIN: z.string(),
+    VITE_FIREBASE_PROJECT_ID: z.string(),
+    VITE_FIREBASE_STORAGE_BUCKET: z.string(),
+    VITE_FIREBASE_MESSAGING_SENDER_ID: z.string(),
+    VITE_FIREBASE_APP_ID: z.string(),
+    VITE_FIREBASE_VAPID_KEY: z.string().optional(),
   },
 
   /**

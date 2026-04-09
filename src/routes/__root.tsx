@@ -7,11 +7,11 @@ import {
 } from '@tanstack/react-router';
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 import type { PropsWithChildren } from 'react';
-import { useEffect } from 'react';
 import { ThemeProvider } from '@/components/context/ThemeProvider';
 import { Toaster } from '@/components/ui/sonner';
 import ReactQueryDevtoolsPanel from '@/integrations/tanstack-query/devtools';
 import { AuthService } from '@/modules/auth/services';
+import PushNotificationsBootstrap from '@/modules/notifications/components/PushNotificationsBootstrap';
 import appCss from '../styles.css?url';
 
 interface MyRouterContext {
@@ -53,19 +53,6 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 });
 
 function RootDocument({ children }: Readonly<PropsWithChildren>) {
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/firebase-messaging-sw.js')
-        .then((registration) => {
-          console.log('Service Worker registered successfully:', registration);
-        })
-        .catch((error) => {
-          console.error('Service Worker registration failed:', error);
-        });
-    }
-  }, []);
-
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
@@ -79,6 +66,7 @@ function RootDocument({ children }: Readonly<PropsWithChildren>) {
           disableTransitionOnChange
         >
           {children}
+          <PushNotificationsBootstrap />
           <Toaster position="top-right" />
         </ThemeProvider>
         <TanStackDevtools

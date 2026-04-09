@@ -1,8 +1,11 @@
+import { useRouteContext } from '@tanstack/react-router';
 import { useEffect, useEffectEvent } from 'react';
 import { toast } from 'sonner';
 import { PushNotificationsService } from '@/modules/notifications/services';
 
 export default function PushNotificationsBootstrap() {
+  const { user } = useRouteContext({ from: '__root__' });
+
   const handleForegroundMessage = useEffectEvent(
     (payload: {
       notification?: {
@@ -34,6 +37,14 @@ export default function PushNotificationsBootstrap() {
 
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    void PushNotificationsService.syncDeviceToken().catch((error) => {
+      console.error('Error al obtener el token de notificaciones:', error);
+    });
+  }, [user?.id]);
 
   return null;
 }

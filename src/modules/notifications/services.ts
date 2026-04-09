@@ -4,6 +4,9 @@ import {
   getFirebaseMessaging,
   getFirebaseMessagingServiceWorker,
 } from '@/lib/firebase';
+import getLocalStorage from '@/lib/localStorage';
+
+const PUSH_DEVICE_TOKEN_STORAGE_KEY = 'push_device_token';
 
 export namespace PushNotificationsService {
   export const isSupported = async () => {
@@ -80,6 +83,28 @@ export namespace PushNotificationsService {
     }
 
     return token;
+  };
+
+  export const getStoredDeviceToken = () => {
+    return getLocalStorage().getItem(PUSH_DEVICE_TOKEN_STORAGE_KEY);
+  };
+
+  export const clearStoredDeviceToken = () => {
+    getLocalStorage().removeItem(PUSH_DEVICE_TOKEN_STORAGE_KEY);
+  };
+
+  export const syncDeviceToken = async () => {
+    const token = await getDeviceToken();
+    const storage = getLocalStorage();
+    const previousToken = storage.getItem(PUSH_DEVICE_TOKEN_STORAGE_KEY);
+
+    storage.setItem(PUSH_DEVICE_TOKEN_STORAGE_KEY, token);
+
+    return {
+      token,
+      previousToken,
+      changed: previousToken !== token,
+    };
   };
 
   export const onForegroundMessage = (

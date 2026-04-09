@@ -3,6 +3,6 @@ import { PushNotificationsService } from '@/modules/notifications/services';
 
 export const usePushNotifications = () => {
   return useMutation({
-    mutationFn: PushNotificationsService.getDeviceToken,
+    mutationFn: PushNotificationsService.syncDeviceToken,
   });
 };

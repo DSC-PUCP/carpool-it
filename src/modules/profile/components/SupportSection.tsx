@@ -142,6 +142,33 @@ export default function SupportSection() {
               </div>
             </AccordionContent>
           </AccordionItem>
+
+          <AccordionItem value="solicitudes-paraderos">
+            <AccordionTrigger>Solicitudes de paraderos</AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-3 text-sm leading-6 text-muted-foreground">
+                <p>
+                  ¿Necesitas agregar un nuevo paradero o punto de
+                  recogida/entrega para tus viajes? Puedes solicitarlo
+                  completando nuestro formulario de solicitudes.
+                </p>
+                <p>
+                  Una vez revisada tu solicitud, el equipo evaluará la
+                  viabilidad y podría agregar el paradero a la aplicación para
+                  que esté disponible para todos los usuarios.
+                </p>
+                <a
+                  href="https://forms.gle/ejemplo-paraderos"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-medium text-primary underline underline-offset-4 transition-opacity hover:opacity-80"
+                >
+                  Solicitar nuevo paradero
+                  <ExternalLink className="size-3" />
+                </a>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
         </Accordion>
       </div>
     </section>

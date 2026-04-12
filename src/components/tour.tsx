@@ -25,8 +25,12 @@ export interface TourStep {
   selectorId: string;
   width?: number;
   height?: number;
+  modalWidth?: number;
+  modalHeight?: number;
   onClickWithinArea?: () => void;
+  onAdvance?: 'open' | 'click' | 'valueChange';
   position?: 'top' | 'bottom' | 'left' | 'right';
+  shouldReload?: boolean;
 }
 
 interface TourContextType {
@@ -45,7 +49,7 @@ interface TourContextType {
 
 interface TourProviderProps {
   children: React.ReactNode;
-  onComplete?: () => void;
+  onComplete?: (shouldReload: boolean) => void;
   className?: string;
   isTourCompleted?: boolean;
 }
@@ -53,8 +57,8 @@ interface TourProviderProps {
 const TourContext = createContext<TourContextType | null>(null);
 
 const PADDING = 16;
-const CONTENT_WIDTH = 300;
-const CONTENT_HEIGHT = 200;
+const DEFAULT_MODAL_WIDTH = 300;
+const DEFAULT_MODAL_HEIGHT = 120;
 
 function getElementPosition(id: string) {
   const element = document.getElementById(id);
@@ -72,7 +76,9 @@ function getElementPosition(id: string) {
 
 function calculateContentPosition(
   elementPos: { top: number; left: number; width: number; height: number },
-  position: 'top' | 'bottom' | 'left' | 'right' = 'bottom'
+  position: 'top' | 'bottom' | 'left' | 'right' = 'bottom',
+  modalWidth: number = DEFAULT_MODAL_WIDTH,
+  modalHeight: number = DEFAULT_MODAL_HEIGHT
 ) {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
@@ -82,34 +88,34 @@ function calculateContentPosition(
 
   switch (position) {
     case 'top':
-      top = elementPos.top - CONTENT_HEIGHT - PADDING;
-      left = elementPos.left + elementPos.width / 2 - CONTENT_WIDTH / 2;
+      top = elementPos.top - modalHeight - PADDING;
+      left = elementPos.left + elementPos.width / 2 - modalWidth / 2;
       break;
     case 'bottom':
       top = elementPos.top + elementPos.height + PADDING;
-      left = elementPos.left + elementPos.width / 2 - CONTENT_WIDTH / 2;
+      left = elementPos.left + elementPos.width / 2 - modalWidth / 2;
       break;
     case 'left':
-      left = elementPos.left - CONTENT_WIDTH - PADDING;
-      top = elementPos.top + elementPos.height / 2 - CONTENT_HEIGHT / 2;
+      left = elementPos.left - modalWidth - PADDING;
+      top = elementPos.top + elementPos.height / 2 - modalHeight / 2;
       break;
     case 'right':
       left = elementPos.left + elementPos.width + PADDING;
-      top = elementPos.top + elementPos.height / 2 - CONTENT_HEIGHT / 2;
+      top = elementPos.top + elementPos.height / 2 - modalHeight / 2;
       break;
   }
 
   return {
     top: Math.max(
       PADDING,
-      Math.min(top, viewportHeight - CONTENT_HEIGHT - PADDING)
+      Math.min(top, viewportHeight - modalHeight - PADDING)
     ),
     left: Math.max(
       PADDING,
-      Math.min(left, viewportWidth - CONTENT_WIDTH - PADDING)
+      Math.min(left, viewportWidth - modalWidth - PADDING)
     ),
-    width: CONTENT_WIDTH,
-    height: CONTENT_HEIGHT,
+    width: modalWidth,
+    height: modalHeight,
   };
 }
 
@@ -159,29 +165,99 @@ export function TourProvider({
     setCurrentStep((prev) => {
       if (prev >= steps.length - 1) {
         setIsTourCompleted(true);
-        onComplete?.();
+        const currentStepData = steps[prev];
+        onComplete?.(currentStepData?.shouldReload ?? false);
         return -1;
       }
 
       return prev + 1;
     });
-  }, [onComplete, setIsTourCompleted, steps.length]);
+  }, [onComplete, setIsTourCompleted, steps]);
 
   const previousStep = useCallback(() => {
     setCurrentStep((prev) => (prev > 0 ? prev - 1 : prev));
   }, []);
+
+  useEffect(() => {
+    if (currentStep < 0 || !steps[currentStep]?.onAdvance) return;
+
+    const onAdvanceType = steps[currentStep].onAdvance;
+
+    const handleEvent = () => {
+      nextStep();
+    };
+
+    if (onAdvanceType === 'open') {
+      const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (
+            mutation.type === 'attributes' &&
+            mutation.attributeName === 'open'
+          ) {
+            const target = mutation.target as HTMLElement;
+            if (target.getAttribute('open') !== null) {
+              nextStep();
+              observer.disconnect();
+            }
+          }
+        }
+      });
+
+      const targetElement = document.querySelector(
+        `[id="${steps[currentStep].selectorId}"]`
+      );
+      if (targetElement) {
+        observer.observe(targetElement, { attributes: true });
+      }
+
+      return () => observer.disconnect();
+    }
+
+    if (onAdvanceType === 'click') {
+      const targetElement = document.querySelector(
+        `[id="${steps[currentStep].selectorId}"]`
+      );
+      if (targetElement) {
+        targetElement.addEventListener('click', handleEvent, { once: true });
+        return () => targetElement.removeEventListener('click', handleEvent);
+      }
+
+      const handleCustomEvent = () => {
+        nextStep();
+      };
+      window.addEventListener('advanceDriverToDialog', handleCustomEvent, {
+        once: true,
+      });
+      return () =>
+        window.removeEventListener('advanceDriverToDialog', handleCustomEvent);
+    }
+
+    if (onAdvanceType === 'valueChange') {
+      const targetElement = document.querySelector(
+        `[id="${steps[currentStep].selectorId}"]`
+      );
+      if (targetElement) {
+        targetElement.addEventListener('input', handleEvent, { once: true });
+        targetElement.addEventListener('change', handleEvent, { once: true });
+        return () => {
+          targetElement.removeEventListener('input', handleEvent);
+          targetElement.removeEventListener('change', handleEvent);
+        };
+      }
+    }
+  }, [currentStep, steps, nextStep]);
 
   const endTour = useCallback(() => {
     setCurrentStep(-1);
   }, []);
 
   const startTour = useCallback(() => {
-    if (isCompleted) {
+    if (steps.length === 0) {
       return;
     }
 
     setCurrentStep(0);
-  }, [isCompleted]);
+  }, [steps.length]);
 
   const handleClick = useCallback(
     (e: MouseEvent) => {
@@ -243,16 +319,14 @@ export function TourProvider({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 z-50 overflow-hidden bg-black/50"
+              className="fixed inset-0 z-40 pointer-events-none"
               style={{
                 clipPath: `polygon(
                   0% 0%,
                   0% 100%,
                   100% 100%,
                   100% 0%,
-                  ${elementPosition.left}px 0%,
-                  ${elementPosition.left}px ${elementPosition.top}px,
-                  ${elementPosition.left + (steps[currentStep]?.width || elementPosition.width)}px ${elementPosition.top}px,
+                  ${elementPosition.left + (steps[currentStep]?.width || elementPosition.width)}px 0%,
                   ${elementPosition.left + (steps[currentStep]?.width || elementPosition.width)}px ${elementPosition.top + (steps[currentStep]?.height || elementPosition.height)}px,
                   ${elementPosition.left}px ${elementPosition.top + (steps[currentStep]?.height || elementPosition.height)}px,
                   ${elementPosition.left}px 0%
@@ -265,14 +339,14 @@ export function TourProvider({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               style={{
-                position: 'absolute',
+                position: 'fixed',
                 top: elementPosition.top,
                 left: elementPosition.left,
                 width: steps[currentStep]?.width || elementPosition.width,
                 height: steps[currentStep]?.height || elementPosition.height,
               }}
               className={cn(
-                'z-100 border-2 border-muted-foreground',
+                'z-50 border-4 border-primary/60 rounded-lg pointer-events-none',
                 className
               )}
             />
@@ -284,11 +358,15 @@ export function TourProvider({
                 y: 0,
                 top: calculateContentPosition(
                   elementPosition,
-                  steps[currentStep]?.position
+                  steps[currentStep]?.position,
+                  steps[currentStep]?.modalWidth,
+                  steps[currentStep]?.modalHeight
                 ).top,
                 left: calculateContentPosition(
                   elementPosition,
-                  steps[currentStep]?.position
+                  steps[currentStep]?.position,
+                  steps[currentStep]?.modalWidth,
+                  steps[currentStep]?.modalHeight
                 ).left,
               }}
               transition={{
@@ -301,7 +379,9 @@ export function TourProvider({
                 position: 'absolute',
                 width: calculateContentPosition(
                   elementPosition,
-                  steps[currentStep]?.position
+                  steps[currentStep]?.position,
+                  steps[currentStep]?.modalWidth,
+                  steps[currentStep]?.modalHeight
                 ).width,
               }}
               className="bg-background relative z-100 rounded-lg border p-4 shadow-lg"
@@ -326,27 +406,16 @@ export function TourProvider({
                     {steps[currentStep]?.content}
                   </motion.div>
 
-                  <div className="mt-4 flex justify-between">
-                    {currentStep > 0 && (
+                  <div className="mt-4 flex justify-center">
+                    {!steps[currentStep]?.onAdvance && (
                       <button
                         type="button"
-                        onClick={previousStep}
-                        disabled={currentStep === 0}
-                        className="text-sm text-muted-foreground hover:text-foreground"
+                        onClick={nextStep}
+                        className="text-sm font-medium text-primary hover:text-primary/90 bg-primary/10 px-4 py-2 rounded-md"
                       >
-                        Anterior
+                        Entendido
                       </button>
                     )}
-
-                    <button
-                      type="button"
-                      onClick={nextStep}
-                      className="ml-auto text-sm font-medium text-primary hover:text-primary/90"
-                    >
-                      {currentStep === steps.length - 1
-                        ? 'Finalizar'
-                        : 'Siguiente'}
-                    </button>
                   </div>
                 </div>
               </AnimatePresence>

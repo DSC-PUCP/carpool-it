@@ -11,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Field, FieldError } from '@/components/ui/field';
 import { Label } from '@/components/ui/label';
 import { useLocations } from '@/hooks/use-locations';
+import { TOUR_STEP_IDS } from '@/lib/tour-constants';
 import MapSelector from '@/modules/travel/pages/new-travel/components/MapDialog';
 import { isCampusLocation } from '@/modules/travel/utils';
 import type { FormSchema } from '../../NewTravel';
@@ -30,7 +31,11 @@ export default function RouteInputs() {
   const originCampus =
     origin && isCampusLocation([origin.lat, origin.lon] as [number, number]);
   return (
-    <Card className="rounded-2xl mb-6">
+    <Card
+      className="rounded-2xl mb-6"
+      id={TOUR_STEP_IDS.TRAVEL_FORM_ORIGIN}
+      data-tour-offer-route={TOUR_STEP_IDS.OFFER_FORM_ROUTE}
+    >
       <CardContent className="p-1">
         <div className="relative flex flex-col gap-0">
           {/* Origin */}
@@ -41,7 +46,7 @@ export default function RouteInputs() {
               <div className="w-0.5 h-10 border-l-2 border-dashed border-border/30 my-1 group-hover:border-primary transition-colors" />
             </div>
 
-            <div className="flex-1 py-1 flex flex-col gap-1">
+            <div className="flex-1 py-1 flex flex-col gap-1 w-full">
               <Label>
                 <Typography variant="muted">Saliendo de</Typography>
               </Label>
@@ -51,22 +56,27 @@ export default function RouteInputs() {
                   name="origin"
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
-                      <ButtonGroup>
-                        <MapSelector
-                          position={
-                            Object.keys(field.value ?? {}).length
-                              ? { lat: field.value.lat, lng: field.value.lon }
-                              : undefined
-                          }
-                          setPosition={({ lat, lng }) => {
-                            if (locations && locations.length === 0)
-                              form.setValue('newLocation', true);
-                            field.onChange({
-                              lat,
-                              lon: lng,
-                            });
-                          }}
-                        />
+                      <ButtonGroup className="flex-1">
+                        <span
+                          id={TOUR_STEP_IDS.TRAVEL_FORM_ORIGIN_MAP}
+                          className="flex-1 inline-flex"
+                        >
+                          <MapSelector
+                            position={
+                              Object.keys(field.value ?? {}).length
+                                ? { lat: field.value.lat, lng: field.value.lon }
+                                : undefined
+                            }
+                            setPosition={({ lat, lng }) => {
+                              if (locations && locations.length === 0)
+                                form.setValue('newLocation', true);
+                              field.onChange({
+                                lat,
+                                lon: lng,
+                              });
+                            }}
+                          />
+                        </span>
                         {!originCampus && (
                           <>
                             <ButtonGroupSeparator />
@@ -118,7 +128,10 @@ export default function RouteInputs() {
           </div>
 
           {/* Destination */}
-          <div className="flex items-center px-4">
+          <div
+            className="flex items-center px-4"
+            id={TOUR_STEP_IDS.TRAVEL_FORM_DESTINATION}
+          >
             <div className="flex flex-col items-center mr-4 pb-1">
               <div className="w-0.5 h-1" />
               <MapPin className="text-primary size-6" />
@@ -134,22 +147,27 @@ export default function RouteInputs() {
                   name="destination"
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
-                      <ButtonGroup>
-                        <MapSelector
-                          position={
-                            Object.keys(field.value ?? {}).length
-                              ? { lat: field.value.lat, lng: field.value.lon }
-                              : undefined
-                          }
-                          setPosition={({ lat, lng }) => {
-                            if (locations && locations.length === 0)
-                              form.setValue('newLocation', true);
-                            field.onChange({
-                              lat,
-                              lon: lng,
-                            });
-                          }}
-                        />
+                      <ButtonGroup className="flex-1">
+                        <span
+                          id={TOUR_STEP_IDS.TRAVEL_FORM_DESTINATION_MAP}
+                          className="flex-1 inline-flex"
+                        >
+                          <MapSelector
+                            position={
+                              Object.keys(field.value ?? {}).length
+                                ? { lat: field.value.lat, lng: field.value.lon }
+                                : undefined
+                            }
+                            setPosition={({ lat, lng }) => {
+                              if (locations && locations.length === 0)
+                                form.setValue('newLocation', true);
+                              field.onChange({
+                                lat,
+                                lon: lng,
+                              });
+                            }}
+                          />
+                        </span>
                         {originCampus && (
                           <>
                             <ButtonGroupSeparator />

@@ -1,0 +1,8 @@
+export const TOUR_STEP_IDS = {
+  SIDEBAR_NEW_TRAVEL: 'sidebar-new-travel',
+  SIDEBAR_HOME: 'sidebar-home',
+  SIDEBAR_PROFILE: 'sidebar-profile',
+  SIDEBAR_ACCOUNT: 'sidebar-account',
+} as const;
+
+export const ONBOARDING_WELCOME_KEY = 'carpool_onboarding_seen';

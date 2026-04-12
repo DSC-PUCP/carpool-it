@@ -4,6 +4,7 @@ import AppSidebar from '@/components/common/AppSidebar';
 import WelcomeDialog from '@/components/common/WelcomeDialog';
 import AppLayout from '@/components/layout/AppLayout';
 import GlowBackground from '@/components/layout/glow-background/GlowBackground';
+import { TourProvider } from '@/components/tour';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { QueryKeys } from '@/const/query-keys';
 import { AuthService } from '@/modules/auth/services';
@@ -49,13 +50,15 @@ export const Route = createFileRoute('/_layout')({
 
     return (
       <SidebarProvider>
-        {user && <AppSidebar {...user} onLogout={mutate} />}
-        {user && <WelcomeDialog />}
-        <GlowBackground>
-          <AppLayout>
-            <Outlet />
-          </AppLayout>
-        </GlowBackground>
+        <TourProvider>
+          {user && <AppSidebar {...user} onLogout={mutate} />}
+          {user && <WelcomeDialog />}
+          <GlowBackground>
+            <AppLayout>
+              <Outlet />
+            </AppLayout>
+          </GlowBackground>
+        </TourProvider>
       </SidebarProvider>
     );
   },

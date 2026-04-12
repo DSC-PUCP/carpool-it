@@ -75,7 +75,7 @@
     "jsqr": "1.4.0",
     "lucide-react": "^0.577.0",
     "maplibre-gl": "^5.19.0",
-    "motion": "12.26.2",
+    "motion": "^12.38.0",
     "next-themes": "0.4.6",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",

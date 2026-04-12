@@ -158,7 +158,7 @@ export default function SupportSection() {
                   que esté disponible para todos los usuarios.
                 </p>
                 <a
-                  href="https://forms.gle/ejemplo-paraderos"
+                  href="https://docs.google.com/forms/d/e/1FAIpQLSdikxeQ9HL-Imo6o5-6BzhcvHip-CH0rCZkjrNsR7hPFUwAzQ/viewform?usp=publish-editor"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 font-medium text-primary underline underline-offset-4 transition-opacity hover:opacity-80"

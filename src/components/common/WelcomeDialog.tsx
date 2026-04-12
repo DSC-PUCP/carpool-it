@@ -9,11 +9,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useTourFlow } from '@/hooks/use-tour-flow';
 
 export default function WelcomeDialog() {
   const [open, setOpen] = useState(false);
-  const { shouldPrompt, startFlow, skipFlow } = useTourFlow('onboarding');
+  const isMobile = useIsMobile();
+  const { shouldPrompt, startFlow, skipFlow } = useTourFlow(
+    isMobile ? 'onboardingMobile' : 'onboarding'
+  );
 
   useEffect(() => {
     setOpen(shouldPrompt);

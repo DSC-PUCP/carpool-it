@@ -8,6 +8,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -67,8 +68,8 @@ function getElementPosition(id: string) {
   const rect = element.getBoundingClientRect();
 
   return {
-    top: rect.top + window.scrollY,
-    left: rect.left + window.scrollX,
+    top: rect.top,
+    left: rect.left,
     width: rect.width,
     height: rect.height,
   };
@@ -134,6 +135,14 @@ export function TourProvider({
     height: number;
   } | null>(null);
   const [isCompleted, setIsCompleted] = useState(isTourCompleted);
+  const [contentSize, setContentSize] = useState<{
+    width: number;
+    height: number;
+  }>({
+    width: DEFAULT_MODAL_WIDTH,
+    height: DEFAULT_MODAL_HEIGHT,
+  });
+  const contentRef = useRef<HTMLDivElement | null>(null);
 
   const updateElementPosition = useCallback(() => {
     if (currentStep < 0 || currentStep >= steps.length) {
@@ -156,6 +165,38 @@ export function TourProvider({
       window.removeEventListener('scroll', updateElementPosition);
     };
   }, [updateElementPosition]);
+
+  useEffect(() => {
+    if (currentStep < 0) {
+      return;
+    }
+
+    const contentElement = contentRef.current;
+    if (!contentElement) {
+      return;
+    }
+
+    const updateContentSize = () => {
+      const rect = contentElement.getBoundingClientRect();
+      setContentSize({
+        width:
+          steps[currentStep]?.modalWidth ?? rect.width ?? DEFAULT_MODAL_WIDTH,
+        height:
+          steps[currentStep]?.modalHeight ??
+          rect.height ??
+          DEFAULT_MODAL_HEIGHT,
+      });
+    };
+
+    updateContentSize();
+
+    const resizeObserver = new ResizeObserver(updateContentSize);
+    resizeObserver.observe(contentElement);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [currentStep, steps]);
 
   const setIsTourCompleted = useCallback((completed: boolean) => {
     setIsCompleted(completed);
@@ -269,14 +310,14 @@ export function TourProvider({
         return;
       }
 
-      const clickX = e.clientX + window.scrollX;
-      const clickY = e.clientY + window.scrollY;
+      const clickY = e.clientY;
+      const clickXViewport = e.clientX;
       const width = steps[currentStep]?.width || elementPosition.width;
       const height = steps[currentStep]?.height || elementPosition.height;
 
       const isWithinBounds =
-        clickX >= elementPosition.left &&
-        clickX <= elementPosition.left + width &&
+        clickXViewport >= elementPosition.left &&
+        clickXViewport <= elementPosition.left + width &&
         clickY >= elementPosition.top &&
         clickY <= elementPosition.top + height;
 
@@ -294,6 +335,16 @@ export function TourProvider({
       window.removeEventListener('click', handleClick);
     };
   }, [handleClick]);
+
+  const contentPosition =
+    currentStep >= 0 && elementPosition
+      ? calculateContentPosition(
+          elementPosition,
+          steps[currentStep]?.position,
+          steps[currentStep]?.modalWidth ?? contentSize.width,
+          steps[currentStep]?.modalHeight ?? contentSize.height
+        )
+      : null;
 
   return (
     <TourContext.Provider
@@ -319,34 +370,16 @@ export function TourProvider({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 pointer-events-none"
-              style={{
-                clipPath: `polygon(
-                  0% 0%,
-                  0% 100%,
-                  100% 100%,
-                  100% 0%,
-                  ${elementPosition.left + (steps[currentStep]?.width || elementPosition.width)}px 0%,
-                  ${elementPosition.left + (steps[currentStep]?.width || elementPosition.width)}px ${elementPosition.top + (steps[currentStep]?.height || elementPosition.height)}px,
-                  ${elementPosition.left}px ${elementPosition.top + (steps[currentStep]?.height || elementPosition.height)}px,
-                  ${elementPosition.left}px 0%
-                )`,
-              }}
-            />
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
               style={{
                 position: 'fixed',
                 top: elementPosition.top,
                 left: elementPosition.left,
                 width: steps[currentStep]?.width || elementPosition.width,
                 height: steps[currentStep]?.height || elementPosition.height,
+                boxShadow: '0 0 0 9999px rgb(0 0 0 / 0.6)',
               }}
               className={cn(
-                'z-50 border-4 border-primary/60 rounded-lg pointer-events-none',
+                'z-40 rounded-lg border-4 border-primary/60 pointer-events-none',
                 className
               )}
             />
@@ -356,18 +389,8 @@ export function TourProvider({
               animate={{
                 opacity: 1,
                 y: 0,
-                top: calculateContentPosition(
-                  elementPosition,
-                  steps[currentStep]?.position,
-                  steps[currentStep]?.modalWidth,
-                  steps[currentStep]?.modalHeight
-                ).top,
-                left: calculateContentPosition(
-                  elementPosition,
-                  steps[currentStep]?.position,
-                  steps[currentStep]?.modalWidth,
-                  steps[currentStep]?.modalHeight
-                ).left,
+                top: contentPosition?.top ?? PADDING,
+                left: contentPosition?.left ?? PADDING,
               }}
               transition={{
                 duration: 0.8,
@@ -376,15 +399,11 @@ export function TourProvider({
               }}
               exit={{ opacity: 0, y: 10 }}
               style={{
-                position: 'absolute',
-                width: calculateContentPosition(
-                  elementPosition,
-                  steps[currentStep]?.position,
-                  steps[currentStep]?.modalWidth,
-                  steps[currentStep]?.modalHeight
-                ).width,
+                position: 'fixed',
+                width: contentPosition?.width ?? contentSize.width,
               }}
               className="bg-background relative z-100 rounded-lg border p-4 shadow-lg"
+              ref={contentRef}
             >
               <div className="text-muted-foreground absolute right-4 top-4 text-xs">
                 {currentStep + 1} / {steps.length}

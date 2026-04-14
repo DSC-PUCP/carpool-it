@@ -31,6 +31,11 @@ export const TOUR_STEP_IDS = {
   DIALOG_DRIVER_CONFIRMATION: 'dialog-driver-confirmation',
   OFFER_FORM_ROUTE: 'offer-form-route',
   OFFER_FORM_CONTRIBUTION: 'offer-form-contribution',
+  PROFILE_HEADER: 'profile-header',
+  PROFILE_EDIT_TAG: 'profile-edit-tag',
+  PROFILE_STATS: 'profile-stats',
+  PROFILE_LOCATIONS: 'profile-locations',
+  PROFILE_SUPPORT: 'profile-support',
 } as const;
 
 export const ONBOARDING_WELCOME_KEY = 'carpool_onboarding_seen';

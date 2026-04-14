@@ -1,11 +1,12 @@
 import { Leaf, Star } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useProfile } from '@/hooks/use-profile';
+import { TOUR_STEP_IDS } from '@/lib/tour-constants';
 
 export default function StatsCards() {
   const { data: profile } = useProfile();
   return (
-    <div className="px-4 mb-8">
+    <div className="px-4 mb-8" id={TOUR_STEP_IDS.PROFILE_STATS}>
       <div className="grid grid-cols-3 gap-3">
         {/* Rating Stat */}
         <Card>

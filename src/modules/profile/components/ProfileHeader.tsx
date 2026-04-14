@@ -2,6 +2,7 @@ import { useRouteContext } from '@tanstack/react-router';
 import { CheckCircle2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useProfile } from '@/hooks/use-profile';
+import { TOUR_STEP_IDS } from '@/lib/tour-constants';
 import EditTagDialog from './EditTagDialog';
 
 export default function ProfileHeader() {
@@ -11,7 +12,10 @@ export default function ProfileHeader() {
 
   const { data: profileData } = useProfile();
   return (
-    <div className="flex flex-col items-center px-6 pt-2 pb-6">
+    <div
+      className="flex flex-col items-center px-6 pt-2 pb-6"
+      id={TOUR_STEP_IDS.PROFILE_HEADER}
+    >
       {/* Avatar with Glow */}
       <div className="relative group">
         <div className="absolute -inset-1 bg-linear-to-tr from-primary to-purple-500 rounded-full blur opacity-40 group-hover:opacity-75 transition duration-200" />

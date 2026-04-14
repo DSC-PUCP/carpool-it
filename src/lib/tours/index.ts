@@ -4,6 +4,7 @@ import { offerTourSteps } from '@/lib/tours/offer-tour';
 import { onboardingMobileTourFlow } from '@/lib/tours/onboarding-mobile-tour';
 import { onboardingTourFlow } from '@/lib/tours/onboarding-tour';
 import { passengerTourSteps } from '@/lib/tours/passenger-tour';
+import { profileTourSteps } from '@/lib/tours/profile-tour';
 
 export const TOUR_FLOWS = {
   onboarding: onboardingTourFlow,
@@ -23,6 +24,10 @@ export const TOUR_FLOWS = {
   driverPublish: {
     storageKey: 'carpool_driver_publish_tour_seen',
     steps: driverPublishTourSteps,
+  },
+  profile: {
+    storageKey: 'carpool_profile_tour_seen',
+    steps: profileTourSteps,
   },
 } as const;
 

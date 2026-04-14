@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import getSupabaseClient from '@/lib/supabase';
+import { PushNotificationsService } from '@/modules/notifications/services';
 
 interface UseRealtimeChatProps {
   roomName: string;
   username: string;
+  actorUserId?: string;
 }
 
 export interface ChatMessage {
@@ -21,7 +23,11 @@ export interface ChatMessage {
 
 const EVENT_MESSAGE_TYPE = 'message';
 
-export function useRealtimeChat({ roomName, username }: UseRealtimeChatProps) {
+export function useRealtimeChat({
+  roomName,
+  username,
+  actorUserId,
+}: UseRealtimeChatProps) {
   const supabase = getSupabaseClient();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [channel, setChannel] = useState<ReturnType<
@@ -73,8 +79,18 @@ export function useRealtimeChat({ roomName, username }: UseRealtimeChatProps) {
         event: EVENT_MESSAGE_TYPE,
         payload: message,
       });
+
+      if (actorUserId) {
+        void PushNotificationsService.notifyChatMessage({
+          roomId: roomName,
+          actorUserId,
+          message: content,
+        }).catch((error) => {
+          console.error('No se pudo enviar notificacion de chat:', error);
+        });
+      }
     },
-    [channel, isConnected, username]
+    [actorUserId, channel, isConnected, roomName, username]
   );
 
   return { messages, sendMessage, isConnected };

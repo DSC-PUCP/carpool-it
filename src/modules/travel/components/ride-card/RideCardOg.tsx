@@ -329,7 +329,7 @@ export default function RideCardOg(props: TravelRoom) {
             <div
               style={{
                 display: 'flex',
-                fontSize: '24px',
+                fontSize: '30px',
                 color: '#64748b',
               }}
             >

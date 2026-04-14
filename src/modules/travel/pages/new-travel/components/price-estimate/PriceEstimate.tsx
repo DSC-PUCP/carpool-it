@@ -7,6 +7,7 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '@/components/ui/input-group';
+import { TOUR_STEP_IDS } from '@/lib/tour-constants';
 import type { FormSchema } from '../../NewTravel';
 
 type PriceEstimateProps = {
@@ -40,6 +41,7 @@ export default function PriceEstimate({
         return (
           <div
             className="flex items-center justify-between px-4 mb-4"
+            id={TOUR_STEP_IDS.OFFER_FORM_CONTRIBUTION}
             style={role === 'request' ? { display: 'none' } : undefined}
           >
             <span className="text-sm font-medium text-muted-foreground">

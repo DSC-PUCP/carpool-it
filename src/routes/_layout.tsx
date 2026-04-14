@@ -48,9 +48,15 @@ export const Route = createFileRoute('/_layout')({
       onSuccess: () => navigate({ to: '/sign-in' }),
     });
 
+    const handleTourComplete = (shouldReload: boolean) => {
+      if (shouldReload) {
+        window.location.reload();
+      }
+    };
+
     return (
       <SidebarProvider>
-        <TourProvider>
+        <TourProvider onComplete={handleTourComplete}>
           {user && <AppSidebar {...user} onLogout={mutate} />}
           {user && <WelcomeDialog />}
           <GlowBackground>

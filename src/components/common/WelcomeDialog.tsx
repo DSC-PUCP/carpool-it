@@ -11,6 +11,9 @@ import {
 } from '@/components/ui/dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTourFlow } from '@/hooks/use-tour-flow';
+import getLocalStorage from '@/lib/localStorage';
+
+const ONBOARDING_COMPLETED_KEY = 'carpool_onboarding_completed';
 
 export default function WelcomeDialog() {
   const [open, setOpen] = useState(false);
@@ -76,6 +79,8 @@ export default function WelcomeDialog() {
         <DialogFooter>
           <Button
             onClick={() => {
+              const ls = getLocalStorage();
+              ls.setItem(ONBOARDING_COMPLETED_KEY, '1');
               skipFlow();
               setOpen(false);
             }}
@@ -85,6 +90,8 @@ export default function WelcomeDialog() {
           </Button>
           <Button
             onClick={() => {
+              const ls = getLocalStorage();
+              ls.setItem(ONBOARDING_COMPLETED_KEY, '1');
               setOpen(false);
               startFlow();
             }}

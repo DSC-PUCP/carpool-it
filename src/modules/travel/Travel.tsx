@@ -10,7 +10,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty';
-import { cn, getDirectionByHour, getNowInLima } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import FilterChips from './components/filter-chips/FilterChips';
 import RideCard from './components/ride-card/RideCard';
 import RideCardSkeleton from './components/ride-card/RideCardSkeleton';

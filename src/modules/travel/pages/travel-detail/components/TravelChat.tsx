@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 interface TravelChatProps {
   roomId: string;
   username: string;
+  userId: string;
 }
 
 const QUICK_MESSAGES = [
@@ -27,7 +28,11 @@ const QUICK_MESSAGES = [
 
 const SEND_COOLDOWN_MS = 1500;
 
-export default function TravelChat({ roomId, username }: TravelChatProps) {
+export default function TravelChat({
+  roomId,
+  username,
+  userId,
+}: TravelChatProps) {
   const { containerRef, scrollToBottom } = useChatScroll();
   const inputRef = useRef<HTMLInputElement>(null);
   const navigation = useNavigate();
@@ -36,7 +41,7 @@ export default function TravelChat({ roomId, username }: TravelChatProps) {
     messages: realtimeMessages,
     sendMessage,
     isConnected,
-  } = useRealtimeChat({ roomName: roomId, username });
+  } = useRealtimeChat({ roomName: roomId, username, actorUserId: userId });
 
   const [newMessage, setNewMessage] = useState('');
   const [quickOpen, setQuickOpen] = useState(false);

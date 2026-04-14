@@ -1,5 +1,6 @@
 import type { RideListFilters } from '@/core/interfaces/travel-repository';
 import type { RideRole } from '@/core/models';
+import { PushNotificationsService } from '@/modules/notifications/services';
 import { travelRepository } from '@/repository';
 import { profileRepository } from '@/repository/profile';
 import { isCampusLocation } from './utils';
@@ -135,6 +136,17 @@ export namespace TravelService {
       throw new Error(
         `Error al unirse a la sala de viaje: ${result.getError()?.message}`
       );
+
+    void PushNotificationsService.notifyJoinRoom({
+      roomId,
+      actorUserId: userId,
+    }).catch((error) => {
+      console.error(
+        'No se pudo enviar notificacion de ingreso al viaje:',
+        error
+      );
+    });
+
     return;
   };
 
@@ -176,6 +188,16 @@ export namespace TravelService {
     const quitResult = await travelRepository.quitRoom({ roomId, userId });
     if (quitResult.isFailure())
       throw new Error('Error al salir de la sala de viaje.');
+
+    void PushNotificationsService.notifyLeaveRoom({
+      roomId,
+      actorUserId: userId,
+    }).catch((error) => {
+      console.error(
+        'No se pudo enviar notificacion de salida del viaje:',
+        error
+      );
+    });
   };
 
   export const setNextStop = async (params: {

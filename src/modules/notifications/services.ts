@@ -1,14 +1,40 @@
 import { getToken, type MessagePayload, onMessage } from 'firebase/messaging';
-import {
-  firebaseVapidKey,
-  getFirebaseMessaging,
-  getFirebaseMessagingServiceWorker,
-} from '@/lib/firebase';
+import { firebaseVapidKey, getFirebaseMessaging } from '@/lib/firebase';
 import getLocalStorage from '@/lib/localStorage';
+import getSupabaseClient from '@/lib/supabase';
 
 const PUSH_DEVICE_TOKEN_STORAGE_KEY = 'push_device_token';
 
+type NotificationRequest =
+  | { type: 'join_room'; roomId: string; actorUserId: string }
+  | { type: 'leave_room'; roomId: string; actorUserId: string }
+  | {
+      type: 'chat_message';
+      roomId: string;
+      actorUserId: string;
+      message: string;
+    }
+  | {
+      type: 'register_device';
+      actorUserId: string;
+      token: string;
+      platform?: string;
+    };
+
 export namespace PushNotificationsService {
+  const invokePushNotifications = async (payload: NotificationRequest) => {
+    const supabase = getSupabaseClient();
+    const { error } = await supabase.functions.invoke('push-notifications', {
+      body: payload,
+    });
+
+    if (error) {
+      throw new Error(
+        `No se pudo invocar push-notifications: ${error.message}`
+      );
+    }
+  };
+
   export const isSupported = async () => {
     const messaging = await getFirebaseMessaging();
     return messaging !== null;
@@ -63,19 +89,10 @@ export namespace PushNotificationsService {
     }
 
     await registerServiceWorker();
-    const serviceWorkerRegistration = await getFirebaseMessagingServiceWorker();
-
-    if (!serviceWorkerRegistration) {
-      throw new Error(
-        'No se pudo registrar el service worker de notificaciones.'
-      );
-    }
 
     await requestPermission();
-
     const token = await getToken(messaging, {
       vapidKey: firebaseVapidKey,
-      serviceWorkerRegistration,
     });
 
     if (!token) {
@@ -95,16 +112,68 @@ export namespace PushNotificationsService {
 
   export const syncDeviceToken = async () => {
     const token = await getDeviceToken();
+    const supabase = getSupabaseClient();
     const storage = getLocalStorage();
     const previousToken = storage.getItem(PUSH_DEVICE_TOKEN_STORAGE_KEY);
+    const changed = previousToken !== token;
+
+    if (changed) {
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+      if (!userId) {
+        throw new Error('No se pudo identificar al usuario autenticado.');
+      }
+
+      await invokePushNotifications({
+        type: 'register_device',
+        actorUserId: userId,
+        token,
+        platform:
+          typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+      });
+    }
 
     storage.setItem(PUSH_DEVICE_TOKEN_STORAGE_KEY, token);
 
     return {
       token,
       previousToken,
-      changed: previousToken !== token,
+      changed,
     };
+  };
+
+  export const notifyJoinRoom = async (params: {
+    roomId: string;
+    actorUserId: string;
+  }) => {
+    await invokePushNotifications({
+      type: 'join_room',
+      roomId: params.roomId,
+      actorUserId: params.actorUserId,
+    });
+  };
+
+  export const notifyLeaveRoom = async (params: {
+    roomId: string;
+    actorUserId: string;
+  }) => {
+    await invokePushNotifications({
+      type: 'leave_room',
+      roomId: params.roomId,
+      actorUserId: params.actorUserId,
+    });
+  };
+
+  export const notifyChatMessage = async (params: {
+    roomId: string;
+    actorUserId: string;
+    message: string;
+  }) => {
+    await invokePushNotifications({
+      type: 'chat_message',
+      roomId: params.roomId,
+      actorUserId: params.actorUserId,
+      message: params.message,
+    });
   };
 
   export const onForegroundMessage = (

@@ -281,7 +281,11 @@ export default function TravelDetail() {
 
         {isMember && user && hasMultipleParticipants && (
           <div className="flex-1 flex flex-col min-h-0 rounded-xl border">
-            <TravelChat roomId={travel.id} username={user.fullName} />
+            <TravelChat
+              roomId={travel.id}
+              username={user.fullName}
+              userId={user.id}
+            />
           </div>
         )}
       </main>

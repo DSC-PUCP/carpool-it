@@ -94,7 +94,7 @@ export const Route = createFileRoute('/_layout/_public/travel/$id')({
         occupiedSeats === 1 ? 'pasajero' : 'pasajeros'
       } • Publicado por ${ownerTag}`;
     }
-
+    description += '. Ingresa para agregar tu parada y recibir notificaciones';
     return {
       title,
       meta: [

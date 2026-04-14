@@ -1,10 +1,13 @@
 import { Copy, QrCode, Wallet } from 'lucide-react';
-import QRCode from 'react-qr-code';
+import QRCodeImport from 'react-qr-code';
 import { toast } from 'sonner';
 import Typography from '@/components/typography';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDriverPayments } from '../hooks/useDriverPayments';
+
+const QRCode =
+  (QRCodeImport as { default?: typeof QRCodeImport }).default ?? QRCodeImport;
 
 type DriverPaymentMethodsProps = {
   driverId?: string;
@@ -36,7 +39,6 @@ export default function DriverPaymentMethods({
   };
 
   if (!hasQr && !hasWallet) return null;
-
   return (
     <div className="space-y-3">
       <Typography variant="muted">Métodos de pago del conductor</Typography>

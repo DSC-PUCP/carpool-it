@@ -3,17 +3,17 @@ importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js'
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyArWfGJDyl6m585svcl3-pWVAN_nNLZFzg',
-  authDomain: 'carpool-it-40240.firebaseapp.com',
-  projectId: 'carpool-it-40240',
-  storageBucket: 'carpool-it-40240.appspot.com',
-  messagingSenderId: '844796551152',
-  appId: '1:844796551152:web:81d3ad7bbe10cc3a870735',
+  apiKey: 'AIzaSyCUcmF8yBbf_BZkasFYU6-j7tpvWjZqPfw',
+  authDomain: 'carpool-it-80e09.firebaseapp.com',
+  projectId: 'carpool-it-80e09',
+  storageBucket: 'carpool-it-80e09.firebasestorage.app',
+  messagingSenderId: '872110314054',
+  appId: '1:872110314054:web:1f26cdc335b08e5d40b047',
 };
 
-firebase.initializeApp(firebaseConfig);
+const app = firebase.initializeApp(firebaseConfig);
 
-const messaging = firebase.messaging();
+const messaging = firebase.messaging(app);
 
 function resolveNotificationUrl(data) {
   if (data?.url) return data.url;

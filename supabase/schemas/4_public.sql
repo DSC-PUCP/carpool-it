@@ -109,6 +109,25 @@ CREATE TABLE public.travel_room_stop (
 
 
 --
+-- Name: recurrent_travel; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.recurrent_travel (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    direction public.travel_direction NOT NULL,
+    origin_coords extensions.geometry(Point,4326) NOT NULL,
+    destination_coords extensions.geometry(Point,4326) NOT NULL,
+    seats smallint DEFAULT 1 NOT NULL,
+    price numeric(4,2) DEFAULT 5.00 NOT NULL,
+    recurrence_rule text NOT NULL,
+    route_description text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- TOC entry 4958 (class 2606 OID 41286)
 -- Name: driver driver_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -190,6 +209,14 @@ ALTER TABLE ONLY public.travel_room_stop
 
 
 --
+-- Name: recurrent_travel recurrent_travel_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recurrent_travel
+    ADD CONSTRAINT recurrent_travel_pkey PRIMARY KEY (id);
+
+
+--
 -- TOC entry 4944 (class 1259 OID 40095)
 -- Name: idx_location_coords_gist; Type: INDEX; Schema: public; Owner: -
 --
@@ -220,6 +247,19 @@ CREATE INDEX idx_push_device_token_user_id ON public.push_device_token USING btr
 
 CREATE INDEX idx_stop_coords_gist ON public.travel_room_stop USING gist (stop_coords);
 
+
+--
+-- Name: idx_recurrent_travel_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_recurrent_travel_user_id ON public.recurrent_travel USING btree (user_id);
+
+
+--
+-- Name: idx_recurrent_travel_origin_coords_gist; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_recurrent_travel_origin_coords_gist ON public.recurrent_travel USING gist (origin_coords);
 
 
 --
@@ -292,4 +332,13 @@ ALTER TABLE ONLY public.travel_room_stop
 
 ALTER TABLE ONLY public.travel_room_stop
     ADD CONSTRAINT travel_room_stop_user_id_fkey1 FOREIGN KEY (user_id) REFERENCES public.profile(id) ON DELETE CASCADE;
+
+
+--
+-- Name: recurrent_travel recurrent_travel_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recurrent_travel
+    ADD CONSTRAINT recurrent_travel_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profile(id) ON DELETE CASCADE;
+
 

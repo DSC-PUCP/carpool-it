@@ -366,3 +366,92 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+
+--
+-- Name: get_user_recurrent_travels(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_user_recurrent_travels(p_user_id uuid) RETURNS TABLE(id uuid, direction public.travel_direction, origin_coords double precision[], destination_coords double precision[], seats smallint, price numeric, recurrence_rule text, route_description text, created_at timestamp with time zone)
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    rt.id,
+    rt.direction,
+    array[st_y(rt.origin_coords), st_x(rt.origin_coords)],
+    array[st_y(rt.destination_coords), st_x(rt.destination_coords)],
+    rt.seats,
+    rt.price,
+    rt.recurrence_rule,
+    rt.route_description,
+    rt.created_at
+  FROM public.recurrent_travel rt
+  WHERE rt.user_id = p_user_id
+  ORDER BY rt.created_at DESC;
+END;
+$$;
+
+
+--
+-- Name: get_public_recurrent_travels_by_tag(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_public_recurrent_travels_by_tag(p_user_tag text) RETURNS TABLE(user_id uuid, user_tag text, user_avatar text, user_rating smallint, user_rides bigint, is_driver boolean, recurrent_travels jsonb)
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    p.id,
+    p.tag,
+    p.avatar,
+    p.rating,
+    p.rides,
+    p.is_driver,
+    COALESCE(
+      (
+        SELECT jsonb_agg(
+          jsonb_build_object(
+            'id', rt.id,
+            'direction', rt.direction,
+            'origin_coords', array[st_y(rt.origin_coords), st_x(rt.origin_coords)],
+            'destination_coords', array[st_y(rt.destination_coords), st_x(rt.destination_coords)],
+            'seats', rt.seats,
+            'price', rt.price,
+            'recurrence_rule', rt.recurrence_rule,
+            'route_description', rt.route_description,
+            'created_at', rt.created_at
+          )
+          ORDER BY rt.created_at DESC
+        )
+        FROM public.recurrent_travel rt
+        WHERE rt.user_id = p.id
+      ),
+      '[]'::jsonb
+    )
+  FROM public.profile p
+  WHERE p.tag = p_user_tag;
+END;
+$$;
+
+
+--
+-- Name: count_user_recurrent_travels(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.count_user_recurrent_travels(p_user_id uuid) RETURNS integer
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+  v_count integer;
+BEGIN
+  SELECT COUNT(*) INTO v_count
+  FROM public.recurrent_travel rt
+  WHERE rt.user_id = p_user_id;
+
+  RETURN v_count;
+END;
+$$;
+

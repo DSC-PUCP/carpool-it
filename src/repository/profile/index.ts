@@ -162,20 +162,28 @@ export const profileRepository: ProfileRepository = {
 
   getRecurringTrips: async (userId) => {
     const supabase = getSupabaseClient();
-    const { data, error } = await supabase
-      .from('travel_room')
-      .select('*')
-      .eq('owner_id', userId)
-      .not('recurrence_rule', 'is', null);
+    const { data, error } = await supabase.rpc('get_user_recurrent_travels', {
+      p_user_id: userId,
+    });
 
     if (error) return Result.error(error);
 
     return Result.success(
       data.map((t) => ({
         id: t.id,
-        datetime: new Date(t.datetime),
         direction: t.direction,
+        originCoords: {
+          lat: t.origin_coords?.[0] ?? 0,
+          lon: t.origin_coords?.[1] ?? 0,
+        },
+        destinationCoords: {
+          lat: t.destination_coords?.[0] ?? 0,
+          lon: t.destination_coords?.[1] ?? 0,
+        },
+        seats: t.seats ?? 1,
+        price: t.price ?? 5,
         recurrenceRule: t.recurrence_rule,
+        routeDescription: t.route_description,
       }))
     );
   },
@@ -183,7 +191,7 @@ export const profileRepository: ProfileRepository = {
   deleteRecurringTrip: async (tripId) => {
     const supabase = getSupabaseClient();
     const { error } = await supabase
-      .from('travel_room')
+      .from('recurrent_travel')
       .delete()
       .eq('id', tripId);
     if (error) return Result.error(error);

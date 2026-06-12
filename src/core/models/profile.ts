@@ -38,7 +38,11 @@ export interface UserLocation {
 
 export interface RecurringTrip {
   id: string;
-  datetime: Date;
   direction: TravelDirection;
-  recurrenceRule: string | null;
+  originCoords: { lat: number; lon: number };
+  destinationCoords: { lat: number; lon: number };
+  seats: number;
+  price: number;
+  recurrenceRule: string;
+  routeDescription: string | null;
 }

@@ -7,8 +7,10 @@ import { TravelService } from '../services';
 export const useListRooms = (defaultFilters: Partial<RideListFilters>) => {
   const { filters } = useFilters('/_layout/_auth/home');
 
-  const resolvedFilters =
-    Object.keys(filters).length > 0 ? filters : defaultFilters;
+  const urlOverrides = Object.fromEntries(
+    Object.entries(filters).filter(([, v]) => v !== undefined)
+  );
+  const resolvedFilters = { ...defaultFilters, ...urlOverrides };
 
   const limit = resolvedFilters.limit ?? 5;
 

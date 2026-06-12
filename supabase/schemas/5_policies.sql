@@ -222,3 +222,39 @@ ALTER TABLE public.travel_room ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.travel_room_stop ENABLE ROW LEVEL SECURITY;
+
+
+--
+-- Name: recurrent_travel; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.recurrent_travel ENABLE ROW LEVEL SECURITY;
+
+
+--
+-- Name: recurrent_travel Enable read access for all users; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable read access for all users" ON public.recurrent_travel FOR SELECT USING (true);
+
+
+--
+-- Name: recurrent_travel Enable insert for users based on user_id; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable insert for users based on user_id" ON public.recurrent_travel FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
+-- Name: recurrent_travel Enable update for users based on user_id; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable update for users based on user_id" ON public.recurrent_travel FOR UPDATE TO authenticated USING ((auth.uid() = user_id)) WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
+-- Name: recurrent_travel Enable delete for users based on user_id; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable delete for users based on user_id" ON public.recurrent_travel FOR DELETE TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
+

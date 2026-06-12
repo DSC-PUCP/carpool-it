@@ -56,7 +56,7 @@ export const Route = createFileRoute('/_layout/_public/travel/$id')({
     const originLabel = isToCampus ? relevantLabel : universityLabel;
     const destinationLabel = isToCampus ? universityLabel : relevantLabel;
 
-    const totalSeats = driver?.seats ?? 0;
+    const totalSeats = driverStop?.seats ?? 0;
     const occupiedSeats = stops.reduce((acc, stop) => {
       return stop.userRole === 'passenger' ? acc + stop.seats : acc;
     }, 0);

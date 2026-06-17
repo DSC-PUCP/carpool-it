@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import type { DriverVehicle } from '@/core/models';
+import { TOUR_STEP_IDS } from '@/lib/tour-constants';
 import { vehicleColors } from './const';
 
 export default function DriverForm() {
@@ -27,7 +28,11 @@ export default function DriverForm() {
         control={form.control}
         name="color"
         render={({ field, fieldState }) => (
-          <Field orientation="vertical" data-invalid={fieldState.invalid}>
+          <Field
+            orientation="vertical"
+            data-invalid={fieldState.invalid}
+            id={TOUR_STEP_IDS.VEHICLE_FORM_COLOR}
+          >
             <FieldContent>
               <FieldLabel>Color</FieldLabel>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -62,7 +67,10 @@ export default function DriverForm() {
         control={form.control}
         name="plate"
         render={({ field, fieldState }) => (
-          <Field data-invalid={fieldState.invalid}>
+          <Field
+            data-invalid={fieldState.invalid}
+            id={TOUR_STEP_IDS.VEHICLE_FORM_PLATE}
+          >
             <FieldLabel> Placa (3 ultimos dígitos)</FieldLabel>
             <Input {...field} />
             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -73,7 +81,10 @@ export default function DriverForm() {
         control={form.control}
         name="seats"
         render={({ field, fieldState }) => (
-          <Field data-invalid={fieldState.invalid}>
+          <Field
+            data-invalid={fieldState.invalid}
+            id={TOUR_STEP_IDS.VEHICLE_FORM_SEATS}
+          >
             <FieldLabel>Asientos</FieldLabel>
             <FieldDescription>
               Número de asientos disponibles PARA pasajeros (excluyendo el
@@ -88,7 +99,10 @@ export default function DriverForm() {
         control={form.control}
         name="price"
         render={({ field, fieldState }) => (
-          <Field data-invalid={fieldState.invalid}>
+          <Field
+            data-invalid={fieldState.invalid}
+            id={TOUR_STEP_IDS.VEHICLE_FORM_PRICE}
+          >
             <FieldLabel>Precio por asiento</FieldLabel>
             <Input {...field} type="number" min={0} step={0.5} />
             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -99,7 +113,10 @@ export default function DriverForm() {
         control={form.control}
         name="routeDescription"
         render={({ field, fieldState }) => (
-          <Field data-invalid={fieldState.invalid}>
+          <Field
+            data-invalid={fieldState.invalid}
+            id={TOUR_STEP_IDS.VEHICLE_FORM_ROUTE}
+          >
             <FieldLabel>Descripción de ruta (opcional)</FieldLabel>
             <FieldDescription>
               Comparte referencias, punto exacto o detalles útiles para

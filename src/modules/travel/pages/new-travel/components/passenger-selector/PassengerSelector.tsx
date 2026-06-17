@@ -3,6 +3,7 @@ import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Field, FieldError } from '@/components/ui/field';
+import { TOUR_STEP_IDS } from '@/lib/tour-constants';
 import type { FormSchema } from '../../NewTravel';
 
 interface PassengerSelectorProps {
@@ -20,7 +21,7 @@ export default function PassengerSelector({
   });
 
   return (
-    <Card className="rounded-2xl mb-8">
+    <Card className="rounded-2xl mb-8" id={TOUR_STEP_IDS.TRAVEL_FORM_SEATS}>
       <CardContent className="flex items-center justify-between p-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -48,6 +49,7 @@ export default function PassengerSelector({
                 <Button
                   type="button"
                   variant="ghost"
+                  id={TOUR_STEP_IDS.TRAVEL_FORM_SEATS_MINUS}
                   onClick={() => field.onChange(Math.min(max, field.value - 1))}
                   disabled={field.value <= min}
                   className="w-8 h-8 flex items-center justify-center rounded-lg bg-card shadow-sm text-muted-foreground hover:text-primary active:scale-95 transition-all p-0"
@@ -66,6 +68,7 @@ export default function PassengerSelector({
                 <Button
                   type="button"
                   variant="ghost"
+                  id={TOUR_STEP_IDS.TRAVEL_FORM_SEATS_PLUS}
                   onClick={() => field.onChange(Math.max(min, field.value + 1))}
                   disabled={field.value >= max}
                   className="w-8 h-8 flex items-center justify-center rounded-lg bg-card shadow-sm text-muted-foreground hover:text-primary active:scale-95 transition-all p-0"

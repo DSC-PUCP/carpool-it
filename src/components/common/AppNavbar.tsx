@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from '@tanstack/react-router';
 import { Car, Plus } from 'lucide-react';
 import { navItems } from '@/components/layout/nav-items';
 import { useActiveRide } from '@/hooks/useActiveRide';
+import { TOUR_STEP_IDS } from '@/lib/tour-constants';
 import {
   Navbar,
   NavbarAction,
@@ -27,6 +28,7 @@ export default function AppNavbar() {
         {leftItems.map((item, i) => (
           <NavbarItem key={item.href} active={location.pathname === item.href}>
             <Link
+              id={item.href === '/home' ? TOUR_STEP_IDS.NAVBAR_HOME : undefined}
               to={item.href}
               className="w-full h-full flex flex-col items-center justify-center"
               viewTransition={{
@@ -45,6 +47,7 @@ export default function AppNavbar() {
 
       {/* Central Action Button Spacer/Wrapper */}
       <NavbarAction
+        id={TOUR_STEP_IDS.NAVBAR_NEW_TRAVEL}
         onClick={() =>
           activeRide
             ? navigate({
@@ -66,6 +69,11 @@ export default function AppNavbar() {
         {rightItems.map((item, i) => (
           <NavbarItem key={item.href} active={location.pathname === item.href}>
             <Link
+              id={
+                item.href === '/profile'
+                  ? TOUR_STEP_IDS.NAVBAR_PROFILE
+                  : undefined
+              }
               to={item.href}
               className="w-full h-full flex flex-col items-center justify-center"
               viewTransition={{

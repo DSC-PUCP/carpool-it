@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { TOUR_STEP_IDS } from '@/lib/tour-constants';
 import { useUpdateTag } from '../hooks/useUpdateTag';
 
 export default function EditTagDialog() {
@@ -37,7 +38,7 @@ export default function EditTagDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="mt-2">
+        <Button className="mt-2" id={TOUR_STEP_IDS.PROFILE_EDIT_TAG}>
           <Edit />
           Editar tag
         </Button>

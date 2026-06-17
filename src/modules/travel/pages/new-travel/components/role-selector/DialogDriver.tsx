@@ -1,7 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect } from 'react';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import z from 'zod';
 import DriverForm from '@/components/common/driver-form/DriverForm';
+import { useTour } from '@/components/tour';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -20,11 +22,14 @@ import {
   FieldSet,
 } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
+import type { DriverVehicle } from '@/core/models';
+import { TOUR_STEP_IDS } from '@/lib/tour-constants';
+import { TOUR_FLOWS } from '@/lib/tours';
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: FormSchema) => Promise<void>;
+  onSubmit: (data: DriverVehicle) => Promise<void>;
   isPending: boolean;
 };
 export default function DialogDriver({
@@ -33,6 +38,21 @@ export default function DialogDriver({
   open,
   isPending,
 }: Props) {
+  const { setSteps, startTour, setIsTourCompleted } = useTour();
+
+  useEffect(() => {
+    const handleShowDriverTour = () => {
+      const flow = TOUR_FLOWS.driverOnboarding;
+      setSteps([...flow.steps]);
+      setIsTourCompleted(false);
+      setTimeout(() => startTour(), 300);
+    };
+
+    window.addEventListener('showDriverTour', handleShowDriverTour);
+    return () =>
+      window.removeEventListener('showDriverTour', handleShowDriverTour);
+  }, [setSteps, startTour, setIsTourCompleted]);
+
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -44,13 +64,19 @@ export default function DialogDriver({
       confirmation: false,
     },
   });
+
   const handleSubmit = form.handleSubmit(async (data) => {
-    await onSubmit(data);
+    const { confirmation, ...vehicleData } = data;
+    await onSubmit(vehicleData as DriverVehicle);
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('advanceDriverTour'));
+    }, 300);
   });
+
   return (
     <FormProvider {...form}>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
+        <DialogContent id={TOUR_STEP_IDS.DIALOG_DRIVER}>
           <DialogHeader>
             <DialogTitle>Ingresa los datos de tu vehículo</DialogTitle>
           </DialogHeader>
@@ -60,7 +86,10 @@ export default function DialogDriver({
               control={form.control}
               name="confirmation"
               render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+                <Field
+                  data-invalid={fieldState.invalid}
+                  id={TOUR_STEP_IDS.DIALOG_DRIVER_CONFIRMATION}
+                >
                   <FieldSet>
                     <FieldGroup>
                       <Field orientation="horizontal">
@@ -92,7 +121,11 @@ export default function DialogDriver({
             <DialogClose asChild>
               <Button variant="outline">Cancelar</Button>
             </DialogClose>
-            <Button disabled={isPending} onClick={() => handleSubmit()}>
+            <Button
+              disabled={isPending}
+              onClick={() => handleSubmit()}
+              id={TOUR_STEP_IDS.DIALOG_DRIVER_SUBMIT}
+            >
               {isPending && <Spinner />} Guardar y continuar
             </Button>
           </DialogFooter>
@@ -114,5 +147,3 @@ const formSchema = z.object({
     message: 'Debes aceptar que la información es correcta',
   }),
 });
-
-type FormSchema = z.infer<typeof formSchema>;

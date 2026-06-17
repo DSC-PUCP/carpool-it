@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useActiveRide } from '@/hooks/useActiveRide';
+import { TOUR_STEP_IDS } from '@/lib/tour-constants';
 import { getFallbackAvatar } from '@/lib/utils';
 
 type AppSidebarProps = {
@@ -63,6 +64,7 @@ export default function AppSidebar({
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
+                  id={TOUR_STEP_IDS.SIDEBAR_NEW_TRAVEL}
                   onClick={() => {
                     activeRide
                       ? navigate({
@@ -86,6 +88,13 @@ export default function AppSidebar({
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
+                    id={
+                      item.href === '/home'
+                        ? TOUR_STEP_IDS.SIDEBAR_HOME
+                        : item.href === '/profile'
+                          ? TOUR_STEP_IDS.SIDEBAR_PROFILE
+                          : undefined
+                    }
                     asChild
                     isActive={location.pathname === item.href}
                     tooltip={item.label}
@@ -108,6 +117,7 @@ export default function AppSidebar({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
+                  id={TOUR_STEP_IDS.SIDEBAR_ACCOUNT}
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >

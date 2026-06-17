@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from '@tanstack/react-router';
 import { ArrowLeft, Save } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import z from 'zod';
@@ -10,18 +11,45 @@ import {
   TopStackAction,
   TopStackTitle,
 } from '@/components/layout/top-stack/TopStack';
+import { useTour } from '@/components/tour';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useVehicle } from '@/hooks/use-vehicle';
+import getLocalStorage from '@/lib/localStorage';
+import { TOUR_STEP_IDS } from '@/lib/tour-constants';
+import { TOUR_FLOWS } from '@/lib/tours';
 import { useUpdateVehicle } from './hooks/useUpdateVehicle';
+
+const DRIVER_TOUR_PENDING_KEY = 'carpool_driver_tour_pending';
 
 export default function Vehicle() {
   const { mutate, isPending } = useUpdateVehicle();
   const { data: vehicle } = useVehicle();
+  const { setSteps, startTour, setIsTourCompleted } = useTour();
+  const [mounted, setMounted] = useState(false);
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: vehicle ?? undefined,
   });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    const ls = getLocalStorage();
+    const driverTourPending = ls.getItem(DRIVER_TOUR_PENDING_KEY) === '1';
+
+    if (driverTourPending) {
+      ls.removeItem(DRIVER_TOUR_PENDING_KEY);
+      const flow = TOUR_FLOWS.driverOnboarding;
+      setSteps([...flow.steps]);
+      setIsTourCompleted(false);
+      setTimeout(() => startTour(), 300);
+    }
+  }, [mounted, setSteps, startTour, setIsTourCompleted]);
 
   const onSubmit = form.handleSubmit((data) => {
     mutate(data, {
@@ -48,7 +76,11 @@ export default function Vehicle() {
         <FormProvider {...form}>
           <form onSubmit={onSubmit} className="flex flex-col gap-4">
             <DriverForm />
-            <Button type="submit" disabled={isPending}>
+            <Button
+              type="submit"
+              disabled={isPending}
+              id={TOUR_STEP_IDS.VEHICLE_FORM_SAVE}
+            >
               {isPending && <Spinner />}
               <Save />
               Guardar cambios

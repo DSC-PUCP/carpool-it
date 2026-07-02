@@ -3,6 +3,7 @@ import { CheckCircle2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useProfile } from '@/hooks/use-profile';
 import EditTagDialog from './EditTagDialog';
+import NotificationToggle from './NotificationToggle';
 
 export default function ProfileHeader() {
   const {
@@ -37,7 +38,10 @@ export default function ProfileHeader() {
           {profileData?.tag ? `@${profileData.tag}` : 'Sem tag definida'}
         </p>
       </div>
-      <EditTagDialog />
+      <div className="flex gap-2">
+        <EditTagDialog />
+        <NotificationToggle />
+      </div>
     </div>
   );
 }

@@ -85,7 +85,7 @@ export const Route = createFileRoute('/_layout/_public/travel/$id')({
       }).format(driver.price);
       description = `${priceLabel} • ${availableSeats} ${
         availableSeats === 1 ? 'asiento' : 'asientos'
-      } • Con ${driver.userTag}`;
+      } • ***-${driver.plate} • ${driver.color}`;
     } else {
       const ownerTag =
         stops.find((stop) => stop.userId === loaderData.ownerId)?.userTag ??

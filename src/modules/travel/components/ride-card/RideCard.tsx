@@ -306,30 +306,36 @@ export default function RideCard(
               </AvatarGroup>
             </div>
           </div>
-          <div className="flex flex-row justify-start gap-2">
-            {routeDescription && (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button size="icon" variant="outline" className="h-8 w-8">
-                    <Info />
-                    <span className="sr-only">Ver descripción de ruta</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Descripción de la ruta</DialogTitle>
-                    <DialogDescription>{routeDescription}</DialogDescription>
-                  </DialogHeader>
-                </DialogContent>
-              </Dialog>
-            )}
-            <Button size="sm" variant="ghost" className="text-xs" asChild>
-              <a href={googleMapsUrl} target="_blank" rel="noreferrer">
-                <MapPinned /> Ver Ruta
-              </a>
-            </Button>
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-row justify-start gap-2">
+              {routeDescription && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button size="icon" variant="outline" className="h-8 w-8">
+                      <Info />
+                      <span className="sr-only">Ver descripción de ruta</span>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Descripción de la ruta</DialogTitle>
+                      <DialogDescription>{routeDescription}</DialogDescription>
+                    </DialogHeader>
+                  </DialogContent>
+                </Dialog>
+              )}
+              <Button size="sm" variant="ghost" className="text-xs" asChild>
+                <a href={googleMapsUrl} target="_blank" rel="noreferrer">
+                  <MapPinned /> Ver Ruta
+                </a>
+              </Button>
+            </div>
             {!hideActions && (
-              <Button asChild size="sm" className="h-8 text-xs font-medium">
+              <Button
+                asChild
+                size="sm"
+                className="h-8 text-xs font-medium w-full"
+              >
                 <Link
                   to="/travel/$id"
                   params={{

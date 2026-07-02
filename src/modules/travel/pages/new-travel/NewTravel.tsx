@@ -128,7 +128,11 @@ export default function NewTravel() {
         },
         onSuccess: (id) => {
           const url = `${window.location.origin}/travel/${id}`;
-          void navigator.clipboard.writeText(url);
+          const routeDescription = vehicleData?.routeDescription?.trim();
+          const clipboardText = routeDescription
+            ? `${url}\n${routeDescription}`
+            : url;
+          void navigator.clipboard.writeText(clipboardText);
           toast.success('Viaje publicado. Enlace copiado al portapapeles.');
           navigation({
             to: '/travel/$id',

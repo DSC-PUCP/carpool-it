@@ -329,7 +329,7 @@ export default function RideCardOg(props: TravelRoom) {
             <div
               style={{
                 display: 'flex',
-                fontSize: '30px',
+                fontSize: '36px',
                 color: '#64748b',
               }}
             >
@@ -372,16 +372,18 @@ export default function RideCardOg(props: TravelRoom) {
               : `${occupiedSeats} pasajeros`}
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              fontSize: '22px',
-              color: '#94a3b8',
-            }}
-          >
-            {passengerStops} {passengerStops === 1 ? 'parada' : 'paradas'} en
-            ruta
-          </div>
+          {passengerStops > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                fontSize: '22px',
+                color: '#94a3b8',
+              }}
+            >
+              {passengerStops} {passengerStops === 1 ? 'parada' : 'paradas'} en
+              ruta
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -94,7 +94,8 @@ export const Route = createFileRoute('/_layout/_public/travel/$id')({
         occupiedSeats === 1 ? 'pasajero' : 'pasajeros'
       } • Publicado por ${ownerTag}`;
     }
-    description += '. Ingresa para agregar tu parada y recibir notificaciones';
+    description +=
+      '. Ingresa para ver la ruta, recibir notificaciones y ver el horario de viajes';
     return {
       title,
       meta: [
@@ -117,6 +118,22 @@ export const Route = createFileRoute('/_layout/_public/travel/$id')({
         {
           property: 'twitter:card',
           content: 'summary_large_image',
+        },
+        {
+          property: 'twitter:title',
+          content: title,
+        },
+        {
+          property: 'twitter:description',
+          content: description,
+        },
+        {
+          property: 'twitter:image',
+          content: `${env.VITE_SERVER_URL}/api/travel/${loaderData.id}/og`,
+        },
+        {
+          property: 'twitter:url',
+          content: `${env.VITE_SERVER_URL}/travel/${loaderData.id}`,
         },
       ],
     };

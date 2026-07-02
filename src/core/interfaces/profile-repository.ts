@@ -1,6 +1,7 @@
 import type { Result } from '@/lib/utils';
 import type {
   DriverVehicle,
+  PublicProfile,
   RecurringTrip,
   UserLocation,
   UserProfile,
@@ -25,7 +26,16 @@ export interface ProfileRepository {
   deleteLocation(locationId: string): Promise<Result<void>>;
 
   getRecurringTrips(userId: string): Promise<Result<RecurringTrip[]>>;
+  addRecurringTrip(
+    userId: string,
+    trip: Omit<RecurringTrip, 'id' | 'isVisible'> & { isVisible?: boolean }
+  ): Promise<Result<string>>;
+  updateRecurringTripVisibility(
+    tripId: string,
+    isVisible: boolean
+  ): Promise<Result<void>>;
   deleteRecurringTrip(tripId: string): Promise<Result<void>>;
+  getPublicProfileByTag(tag: string): Promise<Result<PublicProfile>>;
 
   updateVehicle(
     userId: string,

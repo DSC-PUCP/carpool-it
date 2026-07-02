@@ -122,6 +122,8 @@ CREATE TABLE public.recurrent_travel (
     price numeric(4,2) DEFAULT 5.00 NOT NULL,
     recurrence_rule text NOT NULL,
     route_description text,
+    is_visible boolean DEFAULT true NOT NULL,
+    trip_time time without time zone DEFAULT '08:00'::time without time zone NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );

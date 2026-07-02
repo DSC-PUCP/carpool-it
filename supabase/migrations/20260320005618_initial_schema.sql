@@ -442,6 +442,154 @@ BEGIN
 END;
 $$;
 
+
+--
+-- Name: get_user_recurrent_travels(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_user_recurrent_travels(p_user_id uuid)
+RETURNS TABLE(id uuid, direction public.travel_direction, origin_coords double precision[], destination_coords double precision[], seats smallint, price numeric, recurrence_rule text, route_description text, is_visible boolean, trip_time time without time zone, created_at timestamp with time zone)
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    rt.id,
+    rt.direction,
+    array[st_y(rt.origin_coords), st_x(rt.origin_coords)],
+    array[st_y(rt.destination_coords), st_x(rt.destination_coords)],
+    rt.seats,
+    rt.price,
+    rt.recurrence_rule,
+    rt.route_description,
+    rt.is_visible,
+    rt.trip_time,
+    rt.created_at
+  FROM public.recurrent_travel rt
+  WHERE rt.user_id = p_user_id
+  ORDER BY rt.created_at DESC;
+END;
+$$;
+
+
+--
+-- Name: count_user_recurrent_travels(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.count_user_recurrent_travels(p_user_id uuid) RETURNS integer
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+  v_count integer;
+BEGIN
+  SELECT COUNT(*) INTO v_count
+  FROM public.recurrent_travel rt
+  WHERE rt.user_id = p_user_id;
+  RETURN v_count;
+END;
+$$;
+
+
+--
+-- Name: get_public_recurrent_travels_by_tag(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_public_recurrent_travels_by_tag(p_user_tag text)
+RETURNS TABLE(user_id uuid, user_tag text, user_avatar text, user_rating smallint, user_rides bigint, is_driver boolean, recurrent_travels jsonb)
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    p.id,
+    p.tag::text,
+    p.avatar,
+    p.rating,
+    p.rides::bigint,
+    p.is_driver,
+    COALESCE(
+      (
+        SELECT jsonb_agg(
+          jsonb_build_object(
+            'id', rt.id,
+            'direction', rt.direction,
+            'origin_coords', array[st_y(rt.origin_coords), st_x(rt.origin_coords)],
+            'destination_coords', array[st_y(rt.destination_coords), st_x(rt.destination_coords)],
+            'seats', rt.seats,
+            'price', rt.price,
+            'recurrence_rule', rt.recurrence_rule,
+            'route_description', rt.route_description,
+            'is_visible', rt.is_visible,
+            'trip_time', rt.trip_time,
+            'created_at', rt.created_at
+          )
+          ORDER BY rt.created_at DESC
+        )
+        FROM public.recurrent_travel rt
+        WHERE rt.user_id = p.id
+          AND rt.is_visible = true
+      ),
+      '[]'::jsonb
+    )
+  FROM public.profile p
+  WHERE p.tag = p_user_tag;
+END;
+$$;
+
+
+--
+-- Name: search_visible_recurrent_travels(public.travel_direction, integer, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.search_visible_recurrent_travels(
+    p_direction public.travel_direction DEFAULT NULL::public.travel_direction,
+    p_limit integer DEFAULT 20,
+    p_offset integer DEFAULT 0
+) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+declare
+  v_total int;
+  v_travels jsonb;
+begin
+  select count(*) into v_total
+  from public.recurrent_travel rt
+  where rt.is_visible = true
+    and (p_direction is null or rt.direction = p_direction);
+
+  select jsonb_agg(row_to_json(t))
+  into v_travels
+  from (
+    select
+      rt.id,
+      rt.user_id,
+      pf.tag as user_tag,
+      pf.avatar as user_avatar,
+      rt.direction,
+      array[st_y(rt.origin_coords), st_x(rt.origin_coords)] as origin_coords,
+      array[st_y(rt.destination_coords), st_x(rt.destination_coords)] as destination_coords,
+      rt.seats,
+      rt.price,
+      rt.recurrence_rule,
+      rt.route_description,
+      rt.trip_time,
+      rt.created_at
+    from public.recurrent_travel rt
+    join public.profile pf on pf.id = rt.user_id
+    where rt.is_visible = true
+      and (p_direction is null or rt.direction = p_direction)
+    order by rt.created_at desc
+    limit p_limit
+    offset p_offset
+  ) t;
+
+  return jsonb_build_object(
+    'travels', coalesce(v_travels, '[]'::jsonb),
+    'total', v_total
+  );
+end;
+$$;
+
 SET default_table_access_method = heap;
 
 --
@@ -553,6 +701,27 @@ CREATE TABLE public.travel_room_stop (
 
 
 --
+-- Name: recurrent_travel; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.recurrent_travel (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    direction public.travel_direction NOT NULL,
+    origin_coords extensions.geometry(Point,4326) NOT NULL,
+    destination_coords extensions.geometry(Point,4326) NOT NULL,
+    seats smallint DEFAULT 1 NOT NULL,
+    price numeric(4,2) DEFAULT 5.00 NOT NULL,
+    recurrence_rule text NOT NULL,
+    route_description text,
+    is_visible boolean DEFAULT true NOT NULL,
+    trip_time time without time zone DEFAULT '08:00'::time without time zone NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- TOC entry 4958 (class 2606 OID 41286)
 -- Name: driver driver_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -634,6 +803,14 @@ ALTER TABLE ONLY public.travel_room_stop
 
 
 --
+-- Name: recurrent_travel recurrent_travel_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recurrent_travel
+    ADD CONSTRAINT recurrent_travel_pkey PRIMARY KEY (id);
+
+
+--
 -- TOC entry 4944 (class 1259 OID 40095)
 -- Name: idx_location_coords_gist; Type: INDEX; Schema: public; Owner: -
 --
@@ -663,6 +840,20 @@ CREATE INDEX idx_push_device_token_user_id ON public.push_device_token USING btr
 --
 
 CREATE INDEX idx_stop_coords_gist ON public.travel_room_stop USING gist (stop_coords);
+
+
+--
+-- Name: idx_recurrent_travel_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_recurrent_travel_user_id ON public.recurrent_travel USING btree (user_id);
+
+
+--
+-- Name: idx_recurrent_travel_origin_coords_gist; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_recurrent_travel_origin_coords_gist ON public.recurrent_travel USING gist (origin_coords);
 
 
 
@@ -736,6 +927,14 @@ ALTER TABLE ONLY public.travel_room_stop
 
 ALTER TABLE ONLY public.travel_room_stop
     ADD CONSTRAINT travel_room_stop_user_id_fkey1 FOREIGN KEY (user_id) REFERENCES public.profile(id) ON DELETE CASCADE;
+
+
+--
+-- Name: recurrent_travel recurrent_travel_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recurrent_travel
+    ADD CONSTRAINT recurrent_travel_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profile(id) ON DELETE CASCADE;
 
 CREATE POLICY "Delete profile with service_role" ON public.driver FOR DELETE TO service_role USING (true);
 
@@ -962,7 +1161,44 @@ ALTER TABLE public.travel_room ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.travel_room_stop ENABLE ROW LEVEL SECURITY;
 
+
+--
+-- Name: recurrent_travel; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.recurrent_travel ENABLE ROW LEVEL SECURITY;
+
+
+--
+-- Name: recurrent_travel Enable read access for all users; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable read access for all users" ON public.recurrent_travel FOR SELECT USING (true);
+
+
+--
+-- Name: recurrent_travel Enable insert for users based on user_id; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable insert for users based on user_id" ON public.recurrent_travel FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
+-- Name: recurrent_travel Enable update for users based on user_id; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable update for users based on user_id" ON public.recurrent_travel FOR UPDATE TO authenticated USING ((auth.uid() = user_id)) WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
+-- Name: recurrent_travel Enable delete for users based on user_id; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable delete for users based on user_id" ON public.recurrent_travel FOR DELETE TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
+
 CREATE TRIGGER trg_set_updated_at_push_device_token BEFORE UPDATE ON public.push_device_token FOR EACH ROW EXECUTE FUNCTION public.set_updated_at_push_device_token();
+
+CREATE TRIGGER trg_set_updated_at_recurrent_travel BEFORE UPDATE ON public.recurrent_travel FOR EACH ROW EXECUTE FUNCTION public.set_updated_at_push_device_token();
 
 CREATE TRIGGER trg_validate_driver BEFORE UPDATE OF is_driver ON public.profile FOR EACH ROW EXECUTE FUNCTION public.validate_driver_exists();
 

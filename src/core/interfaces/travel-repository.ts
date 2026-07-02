@@ -1,4 +1,5 @@
 import type {
+  RecurringTrip,
   RideDirection,
   RideLocation,
   RideRole,
@@ -10,6 +11,7 @@ export type RideListFilters = {
   direction: RideDirection;
   datetime: Date;
   onlyOffers: boolean;
+  onlyRecurrents: boolean;
   location: Omit<RideLocation, 'label'>;
   limit: number;
   offset: number;
@@ -32,6 +34,9 @@ export type TravelRepository = {
       };
     }>
   >;
+  searchVisibleRecurrents: (
+    direction?: RideDirection
+  ) => Promise<Result<RecurringTrip[]>>;
   createRoom: (input: RidePublishInput) => Promise<Result<TravelRoom['id']>>;
   deleteRoom: (roomId: string) => Promise<Result<void>>;
   getRoom: (roomId: string) => Promise<Result<TravelRoom | null>>;

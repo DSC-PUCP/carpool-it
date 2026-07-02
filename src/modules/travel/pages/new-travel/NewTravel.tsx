@@ -18,9 +18,12 @@ import { getClosestReferencePoint, isCampusLocation } from '../../utils';
 import DateTimeSelector from './components/datetime-selector/DateTimeSelector';
 import PassengerSelector from './components/passenger-selector/PassengerSelector';
 import PriceEstimate from './components/price-estimate/PriceEstimate';
+import RecurrencePrefill from './components/recurrence-selector/RecurrencePrefill';
+import RecurrenceSelector from './components/recurrence-selector/RecurrenceSelector';
 import RoleSelector from './components/role-selector/RoleSelector';
 import RouteInputs from './components/route-inputs/RouteInputs';
 import { usePublishRide } from './hooks/usePublishRide';
+import { useRecurringTrips } from './hooks/useRecurringTrips';
 import { useSetDriver } from './hooks/useSetDriver';
 import { getDefaultDate } from './utils';
 
@@ -31,6 +34,7 @@ export default function NewTravel() {
   const { data: vehicleData } = useVehicle();
   const { data: profileData } = useProfile();
   const { data: locationsData } = useLocations();
+  const { data: recurringTrips } = useRecurringTrips(user?.id);
   const { mutate, isPending } = usePublishRide();
   const { mutateAsync, isPending: isSettingDriver } = useSetDriver();
   const { mutate: locationMutate } = useCreateLocation();
@@ -73,6 +77,11 @@ export default function NewTravel() {
       origin,
       destination,
       newLocation: false,
+      isRecurrent: false,
+      recurrenceRule: '',
+      isVisible: true,
+      isPrefilledRecurrent: false,
+      tripTime: '08:00',
     },
   });
 
@@ -105,13 +114,22 @@ export default function NewTravel() {
         campusAt: data.date,
         requestedSeats: data.seats,
         price: data.price,
+        isRecurrent: data.isRecurrent,
+        recurrenceRule: data.isRecurrent ? data.recurrenceRule : undefined,
+        isVisible: data.isRecurrent ? data.isVisible : undefined,
+        isPrefilledRecurrent: data.isPrefilledRecurrent,
+        tripTime: data.isRecurrent
+          ? `${String(data.date.getHours()).padStart(2, '0')}:${String(data.date.getMinutes()).padStart(2, '0')}`
+          : undefined,
       },
       {
         onError: (error) => {
           toast.error(error.message || 'Error al publicar el viaje.');
         },
         onSuccess: (id) => {
-          toast.success('Viaje publicado con éxito.');
+          const url = `${window.location.origin}/travel/${id}`;
+          void navigator.clipboard.writeText(url);
+          toast.success('Viaje publicado. Enlace copiado al portapapeles.');
           navigation({
             to: '/travel/$id',
             params: {
@@ -142,6 +160,11 @@ export default function NewTravel() {
     >
       <FormProvider {...form}>
         <form onSubmit={handleSubmit}>
+          {/* Recurrence Prefill */}
+          {recurringTrips && recurringTrips.length > 0 && (
+            <RecurrencePrefill trips={recurringTrips} />
+          )}
+
           {/* Segmented Control for Role */}
           <RoleSelector
             isDriver={!!vehicleData}
@@ -166,6 +189,9 @@ export default function NewTravel() {
           {/* Price Estimate */}
           <PriceEstimate />
 
+          {/* Recurrence Toggle */}
+          <RecurrenceSelector />
+
           {/* Main CTA Button */}
           <div className="px-4">
             <Button
@@ -181,8 +207,8 @@ export default function NewTravel() {
         </form>
       </FormProvider>{' '}
       <p className="text-center text-xs text-muted-foreground mt-4 pb-4">
-        Al publicar, aceptas que el viaje se comparta con otros usuarios de la
-        plataforma.
+        Al publicar, aceptas que los datos del viaje se comparta con otros
+        usuarios de la plataforma.
       </p>
     </main>
   );
@@ -210,5 +236,10 @@ const formSchema = z.object({
     .max(8, 'No puedes exceder la capacidad del vehículo'),
   price: z.number().min(0),
   newLocation: z.boolean(),
+  isRecurrent: z.boolean().default(false),
+  recurrenceRule: z.string().optional(),
+  isVisible: z.boolean().default(true),
+  isPrefilledRecurrent: z.boolean().default(false),
+  tripTime: z.string().default('08:00'),
 });
 export type FormSchema = z.infer<typeof formSchema>;

@@ -45,4 +45,16 @@ export interface RecurringTrip {
   price: number;
   recurrenceRule: string;
   routeDescription: string | null;
+  isVisible: boolean;
+  tripTime: string; // HH:MM format
+}
+
+export interface PublicProfile {
+  id: string;
+  tag: string;
+  avatar: string | null;
+  rating: number | null;
+  ridesCount: number;
+  isDriver: boolean;
+  recurrentTrips: RecurringTrip[];
 }

@@ -1,3 +1,25 @@
+export function parseGoogleMapsUrl(
+  url: string
+): { lat: number; lng: number } | null {
+  const patterns = [
+    /[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/,
+    /@(-?\d+\.?\d*),(-?\d+\.?\d*)/,
+    /[?&]center=(-?\d+\.?\d*),(-?\d+\.?\d*)/,
+    /!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/,
+  ];
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) {
+      const lat = Number.parseFloat(match[1]);
+      const lng = Number.parseFloat(match[2]);
+      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        return { lat, lng };
+      }
+    }
+  }
+  return null;
+}
+
 export const getDefaultDate = (from: Date = new Date()): Date => {
   const now = new Date(from);
 

@@ -235,12 +235,18 @@ export default function RideCard(
         <div className="flex items-stretch justify-between">
           <div className="flex flex-col  md:flex-row md:items-center gap-3 flex-1">
             <div className="flex items-center gap-3">
-              <Avatar className="h-9 w-9 border border-border">
-                {driver && <AvatarImage src={driver.userAvatar} />}
-                <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-                  {driver ? driverInitial : <CarTaxiFront size={16} />}
-                </AvatarFallback>
-              </Avatar>
+              <Link
+                to="/u/$usertag"
+                params={{ usertag: driverName }}
+                className="shrink-0"
+              >
+                <Avatar className="h-9 w-9 border border-border">
+                  {driver && <AvatarImage src={driver.userAvatar} />}
+                  <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                    {driver ? driverInitial : <CarTaxiFront size={16} />}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
               <div className="flex flex-col">
                 <p className="text-sm font-semibold leading-none">
                   {driverName}
@@ -286,14 +292,21 @@ export default function RideCard(
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
-                        <DropdownMenuItem>{stop.userTag}</DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link
+                            to="/u/$usertag"
+                            params={{ usertag: stop.userTag }}
+                          >
+                            {stop.userTag}
+                          </Link>
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   ))}
               </AvatarGroup>
             </div>
           </div>
-          <div className="flex flex-col md:flex-row justify-start gap-2">
+          <div className="flex flex-row justify-start gap-2">
             {routeDescription && (
               <Dialog>
                 <DialogTrigger asChild>

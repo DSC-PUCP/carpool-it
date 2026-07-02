@@ -19,6 +19,12 @@ type PublishRidePayload = {
   campusAt: Date;
   requestedSeats: number;
   price: number;
+  isRecurrent?: boolean;
+  recurrenceRule?: string;
+  isVisible?: boolean;
+  isPrefilledRecurrent?: boolean;
+  routeDescription?: string;
+  tripTime?: string;
 };
 
 export namespace TravelService {
@@ -35,6 +41,14 @@ export namespace TravelService {
         next: null,
       },
     };
+  };
+
+  export const listVisibleRecurrents = async (
+    direction?: 'to_campus' | 'from_campus'
+  ) => {
+    const result = await travelRepository.searchVisibleRecurrents(direction);
+    if (result.isFailure()) throw new Error(result.getError()?.message);
+    return result.getValue() ?? [];
   };
   export const getActiveRideForUser = async (userId: string) => {
     const result = await travelRepository.userHaveActiveRide(userId);
@@ -95,6 +109,36 @@ export namespace TravelService {
       await travelRepository.deleteRoom(createRoomResult.getValue() as string);
       throw new Error('Error al unirse a la sala de viaje.');
     }
+
+    // Save recurrent template only if user created a new one (not pre-filled from existing)
+    if (
+      payload.isRecurrent &&
+      payload.recurrenceRule &&
+      !payload.isPrefilledRecurrent
+    ) {
+      const direction = isCampusLocation([
+        payload.origin.lat,
+        payload.origin.lon,
+      ])
+        ? 'from_campus'
+        : 'to_campus';
+      try {
+        await profileRepository.addRecurringTrip(payload.ownerId, {
+          direction,
+          originCoords: payload.origin,
+          destinationCoords: payload.destination,
+          seats: payload.requestedSeats,
+          price: payload.price,
+          recurrenceRule: payload.recurrenceRule,
+          routeDescription: payload.routeDescription ?? null,
+          isVisible: payload.isVisible ?? true,
+          tripTime: payload.tripTime ?? '08:00',
+        });
+      } catch {
+        // Don't fail the whole publish if recurrent save fails
+      }
+    }
+
     return createRoomResult.getValue() as string;
   };
 

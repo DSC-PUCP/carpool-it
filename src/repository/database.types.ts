@@ -241,6 +241,62 @@ export type Database = {
           },
         ];
       };
+      recurrent_travel: {
+        Row: {
+          created_at: string;
+          destination_coords: unknown;
+          direction: Database['public']['Enums']['travel_direction'];
+          id: string;
+          is_visible: boolean;
+          origin_coords: unknown;
+          price: number;
+          recurrence_rule: string;
+          route_description: string | null;
+          seats: number;
+          trip_time: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          destination_coords: unknown;
+          direction: Database['public']['Enums']['travel_direction'];
+          id?: string;
+          is_visible?: boolean;
+          origin_coords: unknown;
+          price?: number;
+          recurrence_rule: string;
+          route_description?: string | null;
+          seats?: number;
+          trip_time?: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          destination_coords?: unknown;
+          direction?: Database['public']['Enums']['travel_direction'];
+          id?: string;
+          is_visible?: boolean;
+          origin_coords?: unknown;
+          price?: number;
+          recurrence_rule?: string;
+          route_description?: string | null;
+          seats?: number;
+          trip_time?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'recurrent_travel_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profile';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -259,6 +315,46 @@ export type Database = {
           recurrence_rule: string;
           stops: Database['public']['CompositeTypes']['travel_room_stop_type'][];
         }[];
+      };
+      get_user_recurrent_travels: {
+        Args: { p_user_id: string };
+        Returns: {
+          id: string;
+          direction: Database['public']['Enums']['travel_direction'];
+          origin_coords: number[];
+          destination_coords: number[];
+          seats: number;
+          price: number;
+          recurrence_rule: string;
+          route_description: string | null;
+          is_visible: boolean;
+          trip_time: string;
+          created_at: string;
+        }[];
+      };
+      get_public_recurrent_travels_by_tag: {
+        Args: { p_user_tag: string };
+        Returns: {
+          user_id: string;
+          user_tag: string;
+          user_avatar: string | null;
+          user_rating: number | null;
+          user_rides: number;
+          is_driver: boolean;
+          recurrent_travels: Json;
+        }[];
+      };
+      count_user_recurrent_travels: {
+        Args: { p_user_id: string };
+        Returns: number;
+      };
+      search_visible_recurrent_travels: {
+        Args: {
+          p_direction?: Database['public']['Enums']['travel_direction'];
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Json;
       };
       increment_profile_rides: { Args: { p_id: string }; Returns: undefined };
       rate_driver: {

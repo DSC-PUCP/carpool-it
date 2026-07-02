@@ -184,8 +184,55 @@ export const profileRepository: ProfileRepository = {
         price: t.price ?? 5,
         recurrenceRule: t.recurrence_rule,
         routeDescription: t.route_description,
+        isVisible: t.is_visible ?? true,
+        tripTime: (t.trip_time as string) ?? '08:00',
       }))
     );
+  },
+
+  addRecurringTrip: async (userId, trip) => {
+    const supabase = getSupabaseClient();
+
+    // Enforce max 5 recurrents
+    const { data: count, error: countError } = await supabase.rpc(
+      'count_user_recurrent_travels',
+      { p_user_id: userId }
+    );
+    if (countError) return Result.error(countError);
+    if ((count ?? 0) >= 5)
+      return Result.error(
+        new Error('Ya tienes el máximo de 5 viajes recurrentes.')
+      );
+
+    const { data, error } = await supabase
+      .from('recurrent_travel')
+      .insert({
+        user_id: userId,
+        direction: trip.direction,
+        origin_coords: `POINT(${trip.originCoords.lon} ${trip.originCoords.lat})`,
+        destination_coords: `POINT(${trip.destinationCoords.lon} ${trip.destinationCoords.lat})`,
+        seats: trip.seats,
+        price: trip.price,
+        recurrence_rule: trip.recurrenceRule,
+        route_description: trip.routeDescription ?? null,
+        is_visible: trip.isVisible ?? true,
+        trip_time: trip.tripTime ?? '08:00',
+      })
+      .select('id')
+      .single();
+
+    if (error) return Result.error(error);
+    return Result.success(data.id);
+  },
+
+  updateRecurringTripVisibility: async (tripId, isVisible) => {
+    const supabase = getSupabaseClient();
+    const { error } = await supabase
+      .from('recurrent_travel')
+      .update({ is_visible: isVisible })
+      .eq('id', tripId);
+    if (error) return Result.error(error);
+    return Result.success();
   },
 
   deleteRecurringTrip: async (tripId) => {
@@ -196,6 +243,47 @@ export const profileRepository: ProfileRepository = {
       .eq('id', tripId);
     if (error) return Result.error(error);
     return Result.success();
+  },
+
+  getPublicProfileByTag: async (tag) => {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .rpc('get_public_recurrent_travels_by_tag', { p_user_tag: tag })
+      .maybeSingle();
+
+    if (error) return Result.error(error);
+    if (!data) return Result.error(new Error('Profile not found'));
+
+    const recurrentTrips = (
+      (data.recurrent_travels as Array<Record<string, unknown>>) ?? []
+    ).map((t) => ({
+      id: t.id as string,
+      direction: t.direction as 'to_campus' | 'from_campus',
+      originCoords: {
+        lat: (t.origin_coords as number[])?.[0] ?? 0,
+        lon: (t.origin_coords as number[])?.[1] ?? 0,
+      },
+      destinationCoords: {
+        lat: (t.destination_coords as number[])?.[0] ?? 0,
+        lon: (t.destination_coords as number[])?.[1] ?? 0,
+      },
+      seats: (t.seats as number) ?? 1,
+      price: (t.price as number) ?? 5,
+      recurrenceRule: t.recurrence_rule as string,
+      routeDescription: (t.route_description as string) ?? null,
+      isVisible: (t.is_visible as boolean) ?? true,
+      tripTime: (t.trip_time as string) ?? '08:00',
+    }));
+
+    return Result.success({
+      id: data.user_id,
+      tag: data.user_tag,
+      avatar: data.user_avatar,
+      rating: data.user_rating,
+      ridesCount: Number(data.user_rides ?? 0),
+      isDriver: data.is_driver,
+      recurrentTrips,
+    });
   },
 
   updateVehicle: async (userId, vehicle) => {

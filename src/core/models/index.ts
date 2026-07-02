@@ -1,6 +1,7 @@
 export type {
   DriverVehicle,
   PaymentsConfig,
+  PublicProfile,
   RecurringTrip,
   UserLocation,
   UserLocationType,

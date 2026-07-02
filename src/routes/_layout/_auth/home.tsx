@@ -30,6 +30,14 @@ const homeSearchSchema = z
         return val === 'true' || val === true;
       })
       .catch(undefined),
+    onlyRecurrents: z
+      .union([z.boolean(), z.string()])
+      .optional()
+      .transform((val) => {
+        if (val === undefined) return undefined;
+        return val === 'true' || val === true;
+      })
+      .catch(undefined),
     // 'default' => force loader default location
     // 'none'    => explicitly disable location filtering
     // {lat,lon} => explicit custom coordinates
@@ -64,6 +72,7 @@ export const Route = createFileRoute('/_layout/_auth/home')({
       direction: deps.direction ?? defaultDirection,
       datetime: deps.datetime,
       onlyOffers: profileData?.isDriver ? false : (deps.onlyOffers ?? true),
+      onlyRecurrents: deps.onlyRecurrents ?? false,
       limit: deps.limit ?? 5,
       offset: deps.offset ?? 0,
       location: resolvedLocation,

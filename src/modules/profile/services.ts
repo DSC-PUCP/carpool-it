@@ -112,8 +112,48 @@ export namespace ProfileService {
     return result.getValue();
   };
 
+  export const addRecurringTrip = async (params: {
+    userId: string;
+    trip: {
+      direction: 'to_campus' | 'from_campus';
+      originCoords: { lat: number; lon: number };
+      destinationCoords: { lat: number; lon: number };
+      seats: number;
+      price: number;
+      recurrenceRule: string;
+      routeDescription: string | null;
+      isVisible: boolean;
+      tripTime: string;
+    };
+  }) => {
+    const result = await profileRepository.addRecurringTrip(
+      params.userId,
+      params.trip
+    );
+    if (result.isFailure()) throw new Error(result.getError()?.message);
+    return result.getValue();
+  };
+
+  export const updateRecurringTripVisibility = async (
+    tripId: string,
+    isVisible: boolean
+  ) => {
+    const result = await profileRepository.updateRecurringTripVisibility(
+      tripId,
+      isVisible
+    );
+    if (result.isFailure()) throw new Error(result.getError()?.message);
+    return result.getValue();
+  };
+
   export const deleteRecurringTrip = async (tripId: string) => {
     const result = await profileRepository.deleteRecurringTrip(tripId);
+    if (result.isFailure()) throw new Error(result.getError()?.message);
+    return result.getValue();
+  };
+
+  export const getPublicProfileByTag = async (tag: string) => {
+    const result = await profileRepository.getPublicProfileByTag(tag);
     if (result.isFailure()) throw new Error(result.getError()?.message);
     return result.getValue();
   };

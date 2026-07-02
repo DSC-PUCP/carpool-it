@@ -372,7 +372,7 @@ $$;
 -- Name: get_user_recurrent_travels(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_user_recurrent_travels(p_user_id uuid) RETURNS TABLE(id uuid, direction public.travel_direction, origin_coords double precision[], destination_coords double precision[], seats smallint, price numeric, recurrence_rule text, route_description text, created_at timestamp with time zone)
+CREATE FUNCTION public.get_user_recurrent_travels(p_user_id uuid) RETURNS TABLE(id uuid, direction public.travel_direction, origin_coords double precision[], destination_coords double precision[], seats smallint, price numeric, recurrence_rule text, route_description text, is_visible boolean, trip_time time without time zone, created_at timestamp with time zone)
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
@@ -386,6 +386,8 @@ BEGIN
     rt.price,
     rt.recurrence_rule,
     rt.route_description,
+    rt.is_visible,
+    rt.trip_time,
     rt.created_at
   FROM public.recurrent_travel rt
   WHERE rt.user_id = p_user_id
@@ -422,12 +424,15 @@ BEGIN
             'price', rt.price,
             'recurrence_rule', rt.recurrence_rule,
             'route_description', rt.route_description,
+            'is_visible', rt.is_visible,
+            'trip_time', rt.trip_time,
             'created_at', rt.created_at
           )
           ORDER BY rt.created_at DESC
         )
         FROM public.recurrent_travel rt
         WHERE rt.user_id = p.id
+          AND rt.is_visible = true
       ),
       '[]'::jsonb
     )
@@ -453,5 +458,55 @@ BEGIN
 
   RETURN v_count;
 END;
+$$;
+
+
+--
+-- Name: search_visible_recurrent_travels(public.travel_direction, integer, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.search_visible_recurrent_travels(p_direction public.travel_direction DEFAULT NULL::public.travel_direction, p_limit integer DEFAULT 20, p_offset integer DEFAULT 0) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+declare
+  v_total int;
+  v_travels jsonb;
+begin
+  select count(*) into v_total
+  from public.recurrent_travel rt
+  where rt.is_visible = true
+    and (p_direction is null or rt.direction = p_direction);
+
+  select jsonb_agg(row_to_json(t))
+  into v_travels
+  from (
+    select
+      rt.id,
+      rt.user_id,
+      pf.tag as user_tag,
+      pf.avatar as user_avatar,
+      rt.direction,
+      array[st_y(rt.origin_coords), st_x(rt.origin_coords)] as origin_coords,
+      array[st_y(rt.destination_coords), st_x(rt.destination_coords)] as destination_coords,
+      rt.seats,
+      rt.price,
+      rt.recurrence_rule,
+      rt.route_description,
+      rt.trip_time,
+      rt.created_at
+    from public.recurrent_travel rt
+    join public.profile pf on pf.id = rt.user_id
+    where rt.is_visible = true
+      and (p_direction is null or rt.direction = p_direction)
+    order by rt.created_at desc
+    limit p_limit
+    offset p_offset
+  ) t;
+
+  return jsonb_build_object(
+    'travels', coalesce(v_travels, '[]'::jsonb),
+    'total', v_total
+  );
+end;
 $$;
 

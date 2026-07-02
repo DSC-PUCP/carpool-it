@@ -43,6 +43,45 @@ export const travelRepository: TravelRepository = {
     });
   },
 
+  searchVisibleRecurrents: async (direction) => {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.rpc(
+      'search_visible_recurrent_travels',
+      {
+        p_direction: direction ?? null,
+        p_limit: 20,
+        p_offset: 0,
+      }
+    );
+    if (error) return Result.error(new Error(error.message));
+
+    const travels = (
+      (data?.travels as Array<Record<string, unknown>>) ?? []
+    ).map((t) => ({
+      id: t.id as string,
+      direction: t.direction as 'to_campus' | 'from_campus',
+      originCoords: {
+        lat: (t.origin_coords as number[])?.[0] ?? 0,
+        lon: (t.origin_coords as number[])?.[1] ?? 0,
+      },
+      destinationCoords: {
+        lat: (t.destination_coords as number[])?.[0] ?? 0,
+        lon: (t.destination_coords as number[])?.[1] ?? 0,
+      },
+      seats: (t.seats as number) ?? 1,
+      price: (t.price as number) ?? 5,
+      recurrenceRule: t.recurrence_rule as string,
+      routeDescription: (t.route_description as string) ?? null,
+      isVisible: true,
+      tripTime: (t.trip_time as string) ?? '08:00',
+      userId: t.user_id as string,
+      userTag: t.user_tag as string,
+      userAvatar: t.user_avatar as string | null,
+    }));
+
+    return Result.success(travels);
+  },
+
   createRoom: async (input) => {
     const supabase = getSupabaseClient();
     const { data, error } = await supabase

@@ -135,14 +135,14 @@ export const Route = createFileRoute('/_layout/_public/travel/$id')({
 });
 
 function RouteComponent() {
-  const { href } = useLocation();
   const travel = useLoaderData({ from: '/_layout/_public/travel/$id' });
   const routeDescription = travel.driver?.routeDescription?.trim();
 
   const handleShare = async () => {
+    const url = window.location.href;
     const clipboardText = routeDescription
-      ? `${href}\n${routeDescription}`
-      : href;
+      ? `${url}\n${routeDescription}`
+      : url;
 
     if (!navigator.clipboard) {
       toast.error('Tu navegador no permite copiar al portapapeles');

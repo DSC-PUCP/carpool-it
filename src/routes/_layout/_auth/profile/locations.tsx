@@ -5,7 +5,7 @@ import { ProfileService } from '@/modules/profile/services';
 
 export const Route = createFileRoute('/_layout/_auth/profile/locations')({
   loader: async ({ context: { queryClient, user } }) => {
-    const data = await queryClient.ensureQueryData({
+    const data = await queryClient.query({
       queryKey: [QueryKeys.LOCATIONS],
       queryFn: () => ProfileService.getLocations(user.id),
     });

@@ -1,3 +1,4 @@
+import { formatInTimeZone } from 'date-fns-tz';
 import { Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { useRef } from 'react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
@@ -6,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Label } from '@/components/ui/label';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { getRelativeDayLabelInTimeZone, LIMA_TIME_ZONE } from '@/lib/utils';
 import { isCampusLocation } from '@/modules/travel/utils';
 import type { FormSchema } from '../../NewTravel';
 
@@ -156,33 +158,26 @@ const dateFormatter = new Intl.DateTimeFormat('es-ES', {
   weekday: 'short',
   day: 'numeric',
   month: 'short',
+  timeZone: LIMA_TIME_ZONE,
 });
 
 const timeFormatter = new Intl.DateTimeFormat('es-ES', {
   hour: '2-digit',
   minute: '2-digit',
   hour12: true,
+  timeZone: LIMA_TIME_ZONE,
 });
 
 const toDateValue = (date: Date) => {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+  return formatInTimeZone(date, LIMA_TIME_ZONE, 'yyyy-MM-dd');
 };
 
 const toTimeValue = (date: Date) => {
-  const h = String(date.getHours()).padStart(2, '0');
-  const min = String(date.getMinutes()).padStart(2, '0');
-  return `${h}:${min}`;
+  return formatInTimeZone(date, LIMA_TIME_ZONE, 'HH:mm');
 };
 
 const getRelativeLabel = (date: Date) => {
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-
-  if (date.toDateString() === today.toDateString()) return 'Hoy';
-  if (date.toDateString() === tomorrow.toDateString()) return 'Mañana';
+  const relativeLabel = getRelativeDayLabelInTimeZone(date);
+  if (relativeLabel) return relativeLabel;
   return dateFormatter.format(date);
 };

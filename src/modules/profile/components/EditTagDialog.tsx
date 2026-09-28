@@ -49,8 +49,8 @@ export default function EditTagDialog() {
         <div>
           <Input
             placeholder="Nuevo tag"
-            maxLength={15}
-            minLength={3}
+            maxLength={25}
+            minLength={1}
             value={tag}
             onChange={(e) => setTag(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && onSave()}

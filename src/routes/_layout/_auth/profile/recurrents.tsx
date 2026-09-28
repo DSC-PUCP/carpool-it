@@ -6,7 +6,7 @@ import { ProfileService } from '@/modules/profile/services';
 export const Route = createFileRoute('/_layout/_auth/profile/recurrents')({
   component: Recurrents,
   loader: async ({ context: { queryClient, user } }) => {
-    return await queryClient.ensureQueryData({
+    return await queryClient.query({
       queryKey: [QueryKeys.RECURRENTS, user.id],
       queryFn: () => ProfileService.getRecurringTrips(user.id),
     });

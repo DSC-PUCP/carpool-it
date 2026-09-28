@@ -19,21 +19,21 @@ export const Route = createFileRoute('/_layout')({
         activeRide: null,
         vehicleData: null,
       };
-    const profileData = await queryClient.ensureQueryData({
+    const profileData = await queryClient.query({
       queryKey: [QueryKeys.PROFILE],
       queryFn: () => ProfileService.getProfile(user.id),
     });
-    const locationsData = await queryClient.ensureQueryData({
+    const locationsData = await queryClient.query({
       queryKey: [QueryKeys.LOCATIONS],
       queryFn: () => ProfileService.getLocations(user.id),
     });
-    const activeRide = await queryClient.ensureQueryData({
+    const activeRide = await queryClient.query({
       queryKey: [QueryKeys.ACTIVE_RIDE],
       queryFn: () => TravelService.getActiveRideForUser(user.id),
     });
     if (!profileData.isDriver)
       return { profileData, locationsData, vehicleData: null, activeRide };
-    const vehicleData = await queryClient.ensureQueryData({
+    const vehicleData = await queryClient.query({
       queryKey: [QueryKeys.VEHICLE],
       queryFn: () => ProfileService.getVehicle(user.id),
     });

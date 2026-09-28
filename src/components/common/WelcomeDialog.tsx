@@ -12,20 +12,21 @@ import {
 import getLocalStorage from '@/lib/localStorage';
 
 const WELCOME_KEY = 'carpool_welcome_shown';
+const WELCOME_VERSION = '2026-09-27';
 
 export default function WelcomeDialog() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const ls = getLocalStorage();
-    if (!ls.getItem(WELCOME_KEY)) {
+    if (ls.getItem(WELCOME_KEY) !== WELCOME_VERSION) {
       setOpen(true);
     }
   }, []);
 
   const handleClose = () => {
     const ls = getLocalStorage();
-    ls.setItem(WELCOME_KEY, '1');
+    ls.setItem(WELCOME_KEY, WELCOME_VERSION);
     setOpen(false);
   };
 
@@ -57,15 +58,16 @@ export default function WelcomeDialog() {
               .
             </li>
             <li>
-              Lee la sección de{' '}
+              Instala o agrega el app a tu celular{' '}
               <Link
                 to="/profile/asisstance"
+                hash="agregar-a-pantalla-de-inicio"
                 onClick={handleClose}
                 className="font-medium text-primary underline underline-offset-4 transition-opacity hover:opacity-80"
               >
-                Asistencia
+                aquí
               </Link>{' '}
-              para resolver tus dudas.
+              y sigue los pasos.
             </li>
           </ul>
         </div>

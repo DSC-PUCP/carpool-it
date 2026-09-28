@@ -1,17 +1,15 @@
 import { Send } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ChatMessageItem } from '@/components/chat-message';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useChatScroll } from '@/hooks/use-chat-scroll';
-import { type ChatMessage, useRealtimeChat } from '@/hooks/use-realtime-chat';
+import { useRealtimeChat } from '@/hooks/use-realtime-chat';
 import { cn } from '@/lib/utils';
 
 interface RealtimeChatProps {
-  roomName: string;
-  username: string;
-  onMessage?: (messages: ChatMessage[]) => void;
-  messages?: ChatMessage[];
+  roomId: string;
+  currentUserId: string;
 }
 
 /**
@@ -22,50 +20,16 @@ interface RealtimeChatProps {
  * @param messages - The messages to display in the chat. Useful if you want to display messages from a database.
  * @returns The chat component
  */
-export const RealtimeChat = ({
-  roomName,
-  username,
-  onMessage,
-  messages: initialMessages = [],
-}: RealtimeChatProps) => {
+export const RealtimeChat = ({ roomId, currentUserId }: RealtimeChatProps) => {
   const { containerRef, scrollToBottom } = useChatScroll();
 
-  const {
-    messages: realtimeMessages,
-    sendMessage,
-    isConnected,
-  } = useRealtimeChat({
-    roomName,
-    username,
-  });
+  const { messages, sendMessage, isConnected } = useRealtimeChat({ roomId });
   const [newMessage, setNewMessage] = useState('');
-
-  // Merge realtime messages with initial messages
-  const allMessages = useMemo(() => {
-    const mergedMessages = [...initialMessages, ...realtimeMessages];
-    // Remove duplicates based on message id
-    const uniqueMessages = mergedMessages.filter(
-      (message, index, self) =>
-        index === self.findIndex((m) => m.id === message.id)
-    );
-    // Sort by creation date
-    const sortedMessages = uniqueMessages.sort((a, b) =>
-      a.createdAt.localeCompare(b.createdAt)
-    );
-
-    return sortedMessages;
-  }, [initialMessages, realtimeMessages]);
-
-  useEffect(() => {
-    if (onMessage) {
-      onMessage(allMessages);
-    }
-  }, [allMessages, onMessage]);
 
   useEffect(() => {
     // Scroll to bottom whenever messages change
-    scrollToBottom();
-  }, [scrollToBottom]);
+    if (messages.length > 0) scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   const handleSendMessage = useCallback(
     (e: React.FormEvent) => {
@@ -82,16 +46,16 @@ export const RealtimeChat = ({
     <div className="flex flex-col h-full w-full bg-background text-foreground antialiased">
       {/* Messages */}
       <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-        {allMessages.length === 0 ? (
+        {messages.length === 0 ? (
           <div className="text-center text-sm text-muted-foreground">
             No messages yet. Start the conversation!
           </div>
         ) : null}
         <div className="space-y-1">
-          {allMessages.map((message, index) => {
-            const prevMessage = index > 0 ? allMessages[index - 1] : null;
+          {messages.map((message, index) => {
+            const prevMessage = index > 0 ? messages[index - 1] : null;
             const showHeader =
-              !prevMessage || prevMessage.user.name !== message.user.name;
+              !prevMessage || prevMessage.userId !== message.userId;
 
             return (
               <div
@@ -100,7 +64,7 @@ export const RealtimeChat = ({
               >
                 <ChatMessageItem
                   message={message}
-                  isOwnMessage={message.user.name === username}
+                  isOwnMessage={message.userId === currentUserId}
                   showHeader={showHeader}
                 />
               </div>

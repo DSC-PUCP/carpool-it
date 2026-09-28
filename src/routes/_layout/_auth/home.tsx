@@ -78,7 +78,7 @@ export const Route = createFileRoute('/_layout/_auth/home')({
       location: resolvedLocation,
     };
 
-    await queryClient.ensureInfiniteQueryData({
+    await queryClient.infiniteQuery({
       queryKey: [QueryKeys.TRAVEL, filters],
       queryFn: () => TravelService.listRooms(filters),
       initialPageParam: 0,

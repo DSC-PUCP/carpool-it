@@ -1,4 +1,5 @@
 import { EllipsisVertical, ExternalLink, Share, Share2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import previewTravel from '@/assets/images/preview-travel.webp';
 import {
   Accordion,
@@ -9,6 +10,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function SupportSection() {
+  const [openItem, setOpenItem] = useState('que-es-carpool-it');
+
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+      setOpenItem(hash);
+    }
+  }, []);
+
   return (
     <section id="asistencia" className="scroll-mt-24 px-4 pb-10">
       <div className="rounded-3xl border border-border/60 bg-card/70 p-5 shadow-sm backdrop-blur-sm">
@@ -22,7 +32,8 @@ export default function SupportSection() {
         <Accordion
           type="single"
           collapsible
-          defaultValue="que-es-carpool-it"
+          value={openItem}
+          onValueChange={setOpenItem}
           className="w-full"
         >
           <AccordionItem value="que-es-carpool-it">
@@ -56,7 +67,7 @@ export default function SupportSection() {
 
           <AccordionItem value="agregar-a-pantalla-de-inicio">
             <AccordionTrigger>
-              Agregar acceso directo a pantalla de inicio
+              Instalar / Agregar acceso directo a pantalla de inicio
             </AccordionTrigger>
             <AccordionContent>
               <div className="space-y-4">
@@ -74,7 +85,7 @@ export default function SupportSection() {
 
                   <TabsContent value="android" className="pt-4">
                     <ol className="list-decimal space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
-                      <li>Abre Carpool It en Chrome.</li>
+                      <li>Abre Carpool It en tu navegador.</li>
                       <li>
                         Toca el menú{' '}
                         <EllipsisVertical className="inline size-4 align-text-bottom" />{' '}

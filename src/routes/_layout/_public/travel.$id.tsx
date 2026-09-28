@@ -30,7 +30,7 @@ import {
 export const Route = createFileRoute('/_layout/_public/travel/$id')({
   component: RouteComponent,
   loader: async ({ context: { queryClient }, params }) => {
-    const result = await queryClient.ensureQueryData({
+    const result = await queryClient.query({
       queryKey: [QueryKeys.TRAVEL_DETAIL, params.id],
       queryFn: () => TravelService.getRoomDetails(params.id),
     });
@@ -79,23 +79,16 @@ export const Route = createFileRoute('/_layout/_public/travel/$id')({
 
     let description = '';
     if (driver) {
-      const priceLabel = new Intl.NumberFormat('es-PE', {
-        style: 'currency',
-        currency: 'PEN',
-      }).format(driver.price);
-      description = `${priceLabel} • ${availableSeats} ${
-        availableSeats === 1 ? 'asiento' : 'asientos'
-      } • ***-${driver.plate} • ${driver.color}`;
+      description = `Placa: ***-${driver.plate} • ${driver.color}. `;
     } else {
       const ownerTag =
         stops.find((stop) => stop.userId === loaderData.ownerId)?.userTag ??
         'Usuario';
       description = `Buscando conductor • ${occupiedSeats} ${
         occupiedSeats === 1 ? 'pasajero' : 'pasajeros'
-      } • Publicado por ${ownerTag}`;
+      } • Publicado por ${ownerTag}. `;
     }
-    description +=
-      '. Ingresa para ver la ruta, recibir notificaciones y ver el horario de viajes';
+    description += `Ingresa para agregar tu parada, chatear con el grupo y ${driver ? 'ver horarios' : 'organizar el viaje'}.`;
     return {
       title,
       meta: [
@@ -142,14 +135,14 @@ export const Route = createFileRoute('/_layout/_public/travel/$id')({
 });
 
 function RouteComponent() {
-  const { url } = useLocation();
+  const { href } = useLocation();
   const travel = useLoaderData({ from: '/_layout/_public/travel/$id' });
   const routeDescription = travel.driver?.routeDescription?.trim();
 
   const handleShare = async () => {
     const clipboardText = routeDescription
-      ? `${url.href}\n${routeDescription}`
-      : url.href;
+      ? `${href}\n${routeDescription}`
+      : href;
 
     if (!navigator.clipboard) {
       toast.error('Tu navegador no permite copiar al portapapeles');

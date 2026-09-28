@@ -9,27 +9,31 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignInRouteImport } from './routes/sign-in'
-import { Route as HealthcheckRouteImport } from './routes/healthcheck'
-import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LayoutRouteImport } from './routes/_layout'
+import { Route as HealthcheckRouteImport } from './routes/healthcheck'
+import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as LayoutAuthRouteImport } from './routes/_layout/_auth'
-import { Route as ApiAuthCallbackRouteImport } from './routes/api/auth.callback'
 import { Route as LayoutAuthHomeRouteImport } from './routes/_layout/_auth/home'
+import { Route as ApiAuthCallbackRouteImport } from './routes/api/auth.callback'
 import { Route as LayoutAuthProfileIndexRouteImport } from './routes/_layout/_auth/profile/index'
-import { Route as ApiTravelIdOgRouteImport } from './routes/api/travel.$id.og'
-import { Route as LayoutPublicUUsertagRouteImport } from './routes/_layout/_public/u.$usertag'
-import { Route as LayoutPublicTravelIdRouteImport } from './routes/_layout/_public/travel.$id'
-import { Route as LayoutAuthTravelNewRouteImport } from './routes/_layout/_auth/travel/new'
-import { Route as LayoutAuthProfileVehicleRouteImport } from './routes/_layout/_auth/profile/vehicle'
-import { Route as LayoutAuthProfileRecurrentsRouteImport } from './routes/_layout/_auth/profile/recurrents'
-import { Route as LayoutAuthProfilePaymentsRouteImport } from './routes/_layout/_auth/profile/payments'
-import { Route as LayoutAuthProfileLocationsRouteImport } from './routes/_layout/_auth/profile/locations'
 import { Route as LayoutAuthProfileAsisstanceRouteImport } from './routes/_layout/_auth/profile/asisstance'
+import { Route as LayoutAuthProfileLocationsRouteImport } from './routes/_layout/_auth/profile/locations'
+import { Route as LayoutAuthProfilePaymentsRouteImport } from './routes/_layout/_auth/profile/payments'
+import { Route as LayoutAuthProfileRecurrentsRouteImport } from './routes/_layout/_auth/profile/recurrents'
+import { Route as LayoutAuthProfileVehicleRouteImport } from './routes/_layout/_auth/profile/vehicle'
+import { Route as LayoutAuthTravelNewRouteImport } from './routes/_layout/_auth/travel/new'
+import { Route as LayoutPublicTravelIdRouteImport } from './routes/_layout/_public/travel.$id'
+import { Route as LayoutPublicUUsertagRouteImport } from './routes/_layout/_public/u.$usertag'
+import { Route as ApiTravelIdOgRouteImport } from './routes/api/travel.$id.og'
 
-const SignInRoute = SignInRouteImport.update({
-  id: '/sign-in',
-  path: '/sign-in',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LayoutRoute = LayoutRouteImport.update({
+  id: '/_layout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HealthcheckRoute = HealthcheckRouteImport.update({
@@ -37,70 +41,34 @@ const HealthcheckRoute = HealthcheckRouteImport.update({
   path: '/healthcheck',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LayoutRoute = LayoutRouteImport.update({
-  id: '/_layout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LayoutAuthRoute = LayoutAuthRouteImport.update({
   id: '/_auth',
   getParentRoute: () => LayoutRoute,
 } as any)
-const ApiAuthCallbackRoute = ApiAuthCallbackRouteImport.update({
-  id: '/api/auth/callback',
-  path: '/api/auth/callback',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LayoutAuthHomeRoute = LayoutAuthHomeRouteImport.update({
   id: '/home',
   path: '/home',
   getParentRoute: () => LayoutAuthRoute,
+} as any)
+const ApiAuthCallbackRoute = ApiAuthCallbackRouteImport.update({
+  id: '/api/auth/callback',
+  path: '/api/auth/callback',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const LayoutAuthProfileIndexRoute = LayoutAuthProfileIndexRouteImport.update({
   id: '/profile/',
   path: '/profile/',
   getParentRoute: () => LayoutAuthRoute,
 } as any)
-const ApiTravelIdOgRoute = ApiTravelIdOgRouteImport.update({
-  id: '/api/travel/$id/og',
-  path: '/api/travel/$id/og',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LayoutPublicUUsertagRoute = LayoutPublicUUsertagRouteImport.update({
-  id: '/_public/u/$usertag',
-  path: '/u/$usertag',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutPublicTravelIdRoute = LayoutPublicTravelIdRouteImport.update({
-  id: '/_public/travel/$id',
-  path: '/travel/$id',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutAuthTravelNewRoute = LayoutAuthTravelNewRouteImport.update({
-  id: '/travel/new',
-  path: '/travel/new',
-  getParentRoute: () => LayoutAuthRoute,
-} as any)
-const LayoutAuthProfileVehicleRoute =
-  LayoutAuthProfileVehicleRouteImport.update({
-    id: '/profile/vehicle',
-    path: '/profile/vehicle',
-    getParentRoute: () => LayoutAuthRoute,
-  } as any)
-const LayoutAuthProfileRecurrentsRoute =
-  LayoutAuthProfileRecurrentsRouteImport.update({
-    id: '/profile/recurrents',
-    path: '/profile/recurrents',
-    getParentRoute: () => LayoutAuthRoute,
-  } as any)
-const LayoutAuthProfilePaymentsRoute =
-  LayoutAuthProfilePaymentsRouteImport.update({
-    id: '/profile/payments',
-    path: '/profile/payments',
+const LayoutAuthProfileAsisstanceRoute =
+  LayoutAuthProfileAsisstanceRouteImport.update({
+    id: '/profile/asisstance',
+    path: '/profile/asisstance',
     getParentRoute: () => LayoutAuthRoute,
   } as any)
 const LayoutAuthProfileLocationsRoute =
@@ -109,12 +77,44 @@ const LayoutAuthProfileLocationsRoute =
     path: '/profile/locations',
     getParentRoute: () => LayoutAuthRoute,
   } as any)
-const LayoutAuthProfileAsisstanceRoute =
-  LayoutAuthProfileAsisstanceRouteImport.update({
-    id: '/profile/asisstance',
-    path: '/profile/asisstance',
+const LayoutAuthProfilePaymentsRoute =
+  LayoutAuthProfilePaymentsRouteImport.update({
+    id: '/profile/payments',
+    path: '/profile/payments',
     getParentRoute: () => LayoutAuthRoute,
   } as any)
+const LayoutAuthProfileRecurrentsRoute =
+  LayoutAuthProfileRecurrentsRouteImport.update({
+    id: '/profile/recurrents',
+    path: '/profile/recurrents',
+    getParentRoute: () => LayoutAuthRoute,
+  } as any)
+const LayoutAuthProfileVehicleRoute =
+  LayoutAuthProfileVehicleRouteImport.update({
+    id: '/profile/vehicle',
+    path: '/profile/vehicle',
+    getParentRoute: () => LayoutAuthRoute,
+  } as any)
+const LayoutAuthTravelNewRoute = LayoutAuthTravelNewRouteImport.update({
+  id: '/travel/new',
+  path: '/travel/new',
+  getParentRoute: () => LayoutAuthRoute,
+} as any)
+const LayoutPublicTravelIdRoute = LayoutPublicTravelIdRouteImport.update({
+  id: '/_public/travel/$id',
+  path: '/travel/$id',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutPublicUUsertagRoute = LayoutPublicUUsertagRouteImport.update({
+  id: '/_public/u/$usertag',
+  path: '/u/$usertag',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const ApiTravelIdOgRoute = ApiTravelIdOgRouteImport.update({
+  id: '/api/travel/$id/og',
+  path: '/api/travel/$id/og',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -131,7 +131,7 @@ export interface FileRoutesByFullPath {
   '/travel/$id': typeof LayoutPublicTravelIdRoute
   '/u/$usertag': typeof LayoutPublicUUsertagRoute
   '/api/travel/$id/og': typeof ApiTravelIdOgRoute
-  '/profile': typeof LayoutAuthProfileIndexRoute
+  '/profile/': typeof LayoutAuthProfileIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -187,7 +187,7 @@ export interface FileRouteTypes {
     | '/travel/$id'
     | '/u/$usertag'
     | '/api/travel/$id/og'
-    | '/profile'
+    | '/profile/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -237,11 +237,18 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/sign-in': {
-      id: '/sign-in'
-      path: '/sign-in'
-      fullPath: '/sign-in'
-      preLoaderRoute: typeof SignInRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_layout': {
+      id: '/_layout'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof LayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/healthcheck': {
@@ -251,33 +258,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HealthcheckRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_layout': {
-      id: '/_layout'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof LayoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_layout/_auth': {
       id: '/_layout/_auth'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof LayoutAuthRouteImport
       parentRoute: typeof LayoutRoute
-    }
-    '/api/auth/callback': {
-      id: '/api/auth/callback'
-      path: '/api/auth/callback'
-      fullPath: '/api/auth/callback'
-      preLoaderRoute: typeof ApiAuthCallbackRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_layout/_auth/home': {
       id: '/_layout/_auth/home'
@@ -286,60 +279,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAuthHomeRouteImport
       parentRoute: typeof LayoutAuthRoute
     }
+    '/api/auth/callback': {
+      id: '/api/auth/callback'
+      path: '/api/auth/callback'
+      fullPath: '/api/auth/callback'
+      preLoaderRoute: typeof ApiAuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_layout/_auth/profile/': {
       id: '/_layout/_auth/profile/'
       path: '/profile'
-      fullPath: '/profile'
+      fullPath: '/profile/'
       preLoaderRoute: typeof LayoutAuthProfileIndexRouteImport
       parentRoute: typeof LayoutAuthRoute
     }
-    '/api/travel/$id/og': {
-      id: '/api/travel/$id/og'
-      path: '/api/travel/$id/og'
-      fullPath: '/api/travel/$id/og'
-      preLoaderRoute: typeof ApiTravelIdOgRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_layout/_public/u/$usertag': {
-      id: '/_layout/_public/u/$usertag'
-      path: '/u/$usertag'
-      fullPath: '/u/$usertag'
-      preLoaderRoute: typeof LayoutPublicUUsertagRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/_public/travel/$id': {
-      id: '/_layout/_public/travel/$id'
-      path: '/travel/$id'
-      fullPath: '/travel/$id'
-      preLoaderRoute: typeof LayoutPublicTravelIdRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/_auth/travel/new': {
-      id: '/_layout/_auth/travel/new'
-      path: '/travel/new'
-      fullPath: '/travel/new'
-      preLoaderRoute: typeof LayoutAuthTravelNewRouteImport
-      parentRoute: typeof LayoutAuthRoute
-    }
-    '/_layout/_auth/profile/vehicle': {
-      id: '/_layout/_auth/profile/vehicle'
-      path: '/profile/vehicle'
-      fullPath: '/profile/vehicle'
-      preLoaderRoute: typeof LayoutAuthProfileVehicleRouteImport
-      parentRoute: typeof LayoutAuthRoute
-    }
-    '/_layout/_auth/profile/recurrents': {
-      id: '/_layout/_auth/profile/recurrents'
-      path: '/profile/recurrents'
-      fullPath: '/profile/recurrents'
-      preLoaderRoute: typeof LayoutAuthProfileRecurrentsRouteImport
-      parentRoute: typeof LayoutAuthRoute
-    }
-    '/_layout/_auth/profile/payments': {
-      id: '/_layout/_auth/profile/payments'
-      path: '/profile/payments'
-      fullPath: '/profile/payments'
-      preLoaderRoute: typeof LayoutAuthProfilePaymentsRouteImport
+    '/_layout/_auth/profile/asisstance': {
+      id: '/_layout/_auth/profile/asisstance'
+      path: '/profile/asisstance'
+      fullPath: '/profile/asisstance'
+      preLoaderRoute: typeof LayoutAuthProfileAsisstanceRouteImport
       parentRoute: typeof LayoutAuthRoute
     }
     '/_layout/_auth/profile/locations': {
@@ -349,12 +307,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAuthProfileLocationsRouteImport
       parentRoute: typeof LayoutAuthRoute
     }
-    '/_layout/_auth/profile/asisstance': {
-      id: '/_layout/_auth/profile/asisstance'
-      path: '/profile/asisstance'
-      fullPath: '/profile/asisstance'
-      preLoaderRoute: typeof LayoutAuthProfileAsisstanceRouteImport
+    '/_layout/_auth/profile/payments': {
+      id: '/_layout/_auth/profile/payments'
+      path: '/profile/payments'
+      fullPath: '/profile/payments'
+      preLoaderRoute: typeof LayoutAuthProfilePaymentsRouteImport
       parentRoute: typeof LayoutAuthRoute
+    }
+    '/_layout/_auth/profile/recurrents': {
+      id: '/_layout/_auth/profile/recurrents'
+      path: '/profile/recurrents'
+      fullPath: '/profile/recurrents'
+      preLoaderRoute: typeof LayoutAuthProfileRecurrentsRouteImport
+      parentRoute: typeof LayoutAuthRoute
+    }
+    '/_layout/_auth/profile/vehicle': {
+      id: '/_layout/_auth/profile/vehicle'
+      path: '/profile/vehicle'
+      fullPath: '/profile/vehicle'
+      preLoaderRoute: typeof LayoutAuthProfileVehicleRouteImport
+      parentRoute: typeof LayoutAuthRoute
+    }
+    '/_layout/_auth/travel/new': {
+      id: '/_layout/_auth/travel/new'
+      path: '/travel/new'
+      fullPath: '/travel/new'
+      preLoaderRoute: typeof LayoutAuthTravelNewRouteImport
+      parentRoute: typeof LayoutAuthRoute
+    }
+    '/_layout/_public/travel/$id': {
+      id: '/_layout/_public/travel/$id'
+      path: '/travel/$id'
+      fullPath: '/travel/$id'
+      preLoaderRoute: typeof LayoutPublicTravelIdRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/_public/u/$usertag': {
+      id: '/_layout/_public/u/$usertag'
+      path: '/u/$usertag'
+      fullPath: '/u/$usertag'
+      preLoaderRoute: typeof LayoutPublicUUsertagRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/api/travel/$id/og': {
+      id: '/api/travel/$id/og'
+      path: '/api/travel/$id/og'
+      fullPath: '/api/travel/$id/og'
+      preLoaderRoute: typeof ApiTravelIdOgRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }

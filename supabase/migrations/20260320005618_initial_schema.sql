@@ -1339,3 +1339,16 @@ CREATE POLICY "members receive room broadcasts" ON realtime.messages
       ADD CONSTRAINT recurrent_travel_price_nonnegative_check
       CHECK (price >= 0);
 
+select cron.unschedule(jobid)
+from cron.job
+where jobname = 'Clean rooms';
+
+select cron.schedule(
+  'Clean rooms',
+  '*/30 * * * *',
+  $job$
+    DELETE FROM public.travel_room
+    WHERE datetime < NOW() - INTERVAL '6 hours';
+  $job$
+);
+

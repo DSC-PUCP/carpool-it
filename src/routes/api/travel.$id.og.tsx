@@ -1,5 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { ImageResponse } from 'workers-og';
+import type { RecurringTrip } from '@/core/models';
+import { ProfileService } from '@/modules/profile/services';
 import RideCardOg from '@/modules/travel/components/ride-card/RideCardOg';
 import { TravelService } from '@/modules/travel/services';
 
@@ -16,10 +18,28 @@ export const Route = createFileRoute('/api/travel/$id/og')({
             return new Response('Room not found', { status: 404 });
           }
 
-          const image = new ImageResponse(<RideCardOg {...room} />, {
-            width: 1200,
-            height: 630,
-          });
+          let recurringTrips: RecurringTrip[] = [];
+          const driverId = room.driver?.id;
+          if (driverId) {
+            try {
+              recurringTrips = (
+                (await ProfileService.getRecurringTrips(driverId)) ?? []
+              ).filter((trip) => trip.isVisible);
+            } catch (error) {
+              console.error(
+                'Error loading recurring trips for OG image:',
+                error
+              );
+            }
+          }
+
+          const image = new ImageResponse(
+            <RideCardOg {...room} recurringTrips={recurringTrips} />,
+            {
+              width: 1200,
+              height: 630,
+            }
+          );
           return new Response(await image.arrayBuffer(), {
             headers: {
               'Content-Type': 'image/png',

@@ -1,54 +1,49 @@
 import { es } from 'date-fns/locale';
 import { formatInTimeZone } from 'date-fns-tz';
-import type { TravelRoom } from '@/core/models';
+import type { RecurringTrip, TravelRoom } from '@/core/models';
 import { getRelativeDayLabelInTimeZone, LIMA_TIME_ZONE } from '@/lib/utils';
 import { universityLabel } from '@/modules/travel/const';
 import {
   farestPointFromCampus,
   getClosestReferencePoint,
 } from '@/modules/travel/utils';
+import RecurringTripsOg from './RecurringTripsOg';
 
-export default function RideCardOg(props: TravelRoom) {
-  const { direction, datetime, driver, stops } = props;
+interface RideCardOgProps extends TravelRoom {
+  recurringTrips?: RecurringTrip[];
+}
+
+export default function RideCardOg(props: RideCardOgProps) {
+  const { direction, datetime, driver, stops, recurringTrips = [] } = props;
   const isToCampus = direction === 'to_campus';
-
-  const driverStop = stops.find((s) => s.userRole === 'driver');
-
+  const driverStop = stops.find((stop) => stop.userRole === 'driver');
   const relevantLocation = driver
     ? driverStop?.stopCoords
-    : farestPointFromCampus(stops.map((s) => s.stopCoords));
-
+    : farestPointFromCampus(stops.map((stop) => stop.stopCoords));
   const closestRef = relevantLocation
     ? getClosestReferencePoint(relevantLocation)
     : null;
-
   const relevantLabel = closestRef?.label ?? 'Ubicación';
-
   const originLabel = isToCampus ? relevantLabel : universityLabel;
   const destinationLabel = isToCampus ? universityLabel : relevantLabel;
-
   const totalSeats = driverStop?.seats ?? 0;
-
   const occupiedSeats = stops.reduce(
-    (acc, stop) => (stop.userRole === 'passenger' ? acc + stop.seats : acc),
+    (total, stop) =>
+      stop.userRole === 'passenger' ? total + stop.seats : total,
     0
   );
-
   const availableSeats = Math.max(0, totalSeats - occupiedSeats);
-
   const dateObj = new Date(datetime);
 
   let dateLabel = formatInTimeZone(dateObj, LIMA_TIME_ZONE, "d 'de' MMMM", {
     locale: es,
   });
-
   const relativeDayLabel = getRelativeDayLabelInTimeZone(dateObj);
   if (relativeDayLabel) dateLabel = relativeDayLabel;
 
   const timeLabel = formatInTimeZone(dateObj, LIMA_TIME_ZONE, 'hh:mm a', {
     locale: es,
   });
-
   const priceLabel = driver
     ? new Intl.NumberFormat('es-PE', {
         style: 'currency',
@@ -56,20 +51,17 @@ export default function RideCardOg(props: TravelRoom) {
         maximumFractionDigits: 2,
       }).format(driver.price)
     : null;
-
   const uniqueStopLocations = new Set(
     stops
-      .filter((s) => {
+      .filter((stop) => {
         if (!relevantLocation) return true;
-
         return (
-          s.stopCoords[0] !== relevantLocation[0] ||
-          s.stopCoords[1] !== relevantLocation[1]
+          stop.stopCoords[0] !== relevantLocation[0] ||
+          stop.stopCoords[1] !== relevantLocation[1]
         );
       })
-      .map((s) => `${s.stopCoords[0]},${s.stopCoords[1]}`)
+      .map((stop) => `${stop.stopCoords[0]},${stop.stopCoords[1]}`)
   );
-
   const passengerStops = uniqueStopLocations.size;
 
   return (
@@ -80,11 +72,10 @@ export default function RideCardOg(props: TravelRoom) {
         height: '100%',
         width: '100%',
         background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-        padding: '56px 120px',
+        padding: '56px 70px',
         fontFamily: 'sans-serif',
       }}
     >
-      {/* Header */}
       <div
         style={{
           display: 'flex',
@@ -111,9 +102,8 @@ export default function RideCardOg(props: TravelRoom) {
               marginBottom: '12px',
             }}
           >
-            Carpool IT
+            Carpool It
           </div>
-
           <div
             style={{
               display: 'flex',
@@ -138,7 +128,7 @@ export default function RideCardOg(props: TravelRoom) {
               color: 'white',
               padding: '14px 24px',
               borderRadius: '20px',
-              fontSize: '36px',
+              fontSize: '38px',
               fontWeight: 'bold',
             }}
           >
@@ -147,124 +137,111 @@ export default function RideCardOg(props: TravelRoom) {
         )}
       </div>
 
-      {/* Route */}
       <div
         style={{
           display: 'flex',
-          flexDirection: 'column',
+          alignItems: 'stretch',
           flex: 1,
-          justifyContent: 'center',
-          position: 'relative',
+          gap: '44px',
+          minHeight: 0,
         }}
       >
         <div
           style={{
             display: 'flex',
-            alignItems: 'center',
-            gap: '30px',
-            marginBottom: '40px',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            position: 'relative',
+            flex: '0 0 556px',
+            minWidth: 0,
           }}
         >
           <div
             style={{
               display: 'flex',
-              width: '32px',
-              height: '32px',
-              borderRadius: '16px',
-              backgroundColor: '#6366f1',
-            }}
-          />
-
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '30px',
+              marginBottom: '40px',
             }}
           >
             <div
               style={{
                 display: 'flex',
-                fontSize: '24px',
-                color: '#64748b',
+                width: '32px',
+                height: '32px',
+                borderRadius: '16px',
+                backgroundColor: '#6366f1',
+                flexShrink: 0,
               }}
-            >
-              Origen
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                fontSize: '44px',
-                fontWeight: 'bold',
-                color: '#1e293b',
-              }}
-            >
-              {originLabel}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div
+                style={{ display: 'flex', fontSize: '24px', color: '#64748b' }}
+              >
+                Origen
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  fontSize: '44px',
+                  fontWeight: 'bold',
+                  color: '#1e293b',
+                }}
+              >
+                {originLabel}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div
-          style={{
-            display: 'flex',
-            position: 'absolute',
-            left: '15px',
-            top: '50px',
-            bottom: '50px',
-            width: '2px',
-            backgroundColor: '#e2e8f0',
-          }}
-        />
-
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '30px',
-          }}
-        >
           <div
             style={{
               display: 'flex',
-              width: '32px',
-              height: '32px',
-              borderRadius: '16px',
-              border: '6px solid #6366f1',
-              backgroundColor: 'white',
+              position: 'absolute',
+              left: '15px',
+              top: '50px',
+              bottom: '50px',
+              width: '2px',
+              backgroundColor: '#e2e8f0',
             }}
           />
 
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '30px' }}>
             <div
               style={{
                 display: 'flex',
-                fontSize: '24px',
-                color: '#64748b',
+                width: '32px',
+                height: '32px',
+                borderRadius: '16px',
+                border: '6px solid #6366f1',
+                backgroundColor: 'white',
+                flexShrink: 0,
               }}
-            >
-              Destino
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                fontSize: '44px',
-                fontWeight: 'bold',
-                color: '#1e293b',
-              }}
-            >
-              {destinationLabel}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div
+                style={{ display: 'flex', fontSize: '24px', color: '#64748b' }}
+              >
+                Destino
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  fontSize: '44px',
+                  fontWeight: 'bold',
+                  color: '#1e293b',
+                }}
+              >
+                {destinationLabel}
+              </div>
             </div>
           </div>
         </div>
+
+        {recurringTrips.length > 0 && (
+          <RecurringTripsOg trips={recurringTrips} />
+        )}
       </div>
 
-      {/* Footer */}
       <div
         style={{
           display: 'flex',
@@ -275,22 +252,12 @@ export default function RideCardOg(props: TravelRoom) {
           borderTop: '2px solid #f1f5f9',
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '24px',
-          }}
-        >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
           {driver?.userAvatar ? (
             <img
               src={driver.userAvatar}
               alt={driver.userTag}
-              style={{
-                width: '100px',
-                height: '100px',
-                borderRadius: '50px',
-              }}
+              style={{ width: '100px', height: '100px', borderRadius: '50px' }}
             />
           ) : (
             <div
@@ -308,13 +275,7 @@ export default function RideCardOg(props: TravelRoom) {
               🚗
             </div>
           )}
-
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div
               style={{
                 display: 'flex',
@@ -325,13 +286,8 @@ export default function RideCardOg(props: TravelRoom) {
             >
               {driver?.userTag ?? 'Vehículo Externo'}
             </div>
-
             <div
-              style={{
-                display: 'flex',
-                fontSize: '36px',
-                color: '#64748b',
-              }}
+              style={{ display: 'flex', fontSize: '36px', color: '#64748b' }}
             >
               {driver
                 ? `***-${driver.plate} • ${driver.color}`
@@ -363,7 +319,7 @@ export default function RideCardOg(props: TravelRoom) {
                 : '#1e40af',
               padding: '12px 24px',
               borderRadius: '12px',
-              fontSize: '28px',
+              fontSize: '32px',
               fontWeight: 'bold',
             }}
           >
@@ -371,14 +327,9 @@ export default function RideCardOg(props: TravelRoom) {
               ? `${availableSeats} asientos disponibles`
               : `${occupiedSeats} pasajeros`}
           </div>
-
           {passengerStops > 0 && (
             <div
-              style={{
-                display: 'flex',
-                fontSize: '22px',
-                color: '#94a3b8',
-              }}
+              style={{ display: 'flex', fontSize: '22px', color: '#94a3b8' }}
             >
               {passengerStops} {passengerStops === 1 ? 'parada' : 'paradas'} en
               ruta

@@ -42,6 +42,8 @@ export type TravelRoom = {
   direction: RideDirection; // enum travel_direction
   datetime: Date; // Date object from ISO timestamp
   recurrenceRule: `RRULE:${string}` | null;
+  active: boolean;
+  allow: boolean;
   stops: TravelRoomStop[]; // array de paradas
   driver: DriverInfo; // objeto o null
   currentStop: number;

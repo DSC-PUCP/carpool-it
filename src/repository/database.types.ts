@@ -241,6 +241,45 @@ export type Database = {
           },
         ];
       };
+      travel_room_message: {
+        Row: {
+          content: string;
+          created_at: string;
+          id: string;
+          room_id: string;
+          user_id: string;
+        };
+        Insert: {
+          content: string;
+          created_at?: string;
+          id?: string;
+          room_id: string;
+          user_id?: string;
+        };
+        Update: {
+          content?: string;
+          created_at?: string;
+          id?: string;
+          room_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'travel_room_message_room_id_fkey';
+            columns: ['room_id'];
+            isOneToOne: false;
+            referencedRelation: 'travel_room';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'travel_room_message_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profile';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       recurrent_travel: {
         Row: {
           created_at: string;
@@ -306,6 +345,8 @@ export type Database = {
       get_travel_room_detail: {
         Args: { p_id: string };
         Returns: {
+          active: boolean;
+          allow: boolean;
           current_stop: number;
           datetime: string;
           direction: Database['public']['Enums']['travel_direction'];
@@ -359,6 +400,10 @@ export type Database = {
       increment_profile_rides: { Args: { p_id: string }; Returns: undefined };
       rate_driver: {
         Args: { p_driver: string; p_rate: number };
+        Returns: undefined;
+      };
+      update_travel_room_settings: {
+        Args: { p_active: boolean; p_allow: boolean; p_room_id: string };
         Returns: undefined;
       };
       search_travel_rooms: {

@@ -19,6 +19,7 @@ type PublishRidePayload = {
   campusAt: Date;
   requestedSeats: number;
   price: number;
+  isPrivate?: boolean;
   isRecurrent?: boolean;
   recurrenceRule?: string;
   isVisible?: boolean;
@@ -51,7 +52,7 @@ export namespace TravelService {
     return result.getValue() ?? [];
   };
   export const getActiveRideForUser = async (userId: string) => {
-    const result = await travelRepository.userHaveActiveRide(userId);
+    const result = await travelRepository.userHaveRide(userId);
     if (result.isFailure()) throw new Error(result.getError()?.message);
     return result.getValue();
   };
@@ -70,7 +71,7 @@ export namespace TravelService {
         );
     }
 
-    const haveActiveTravelResult = await travelRepository.userHaveActiveRide(
+    const haveActiveTravelResult = await travelRepository.userHaveRide(
       payload.ownerId
     );
     if (haveActiveTravelResult.isFailure())
@@ -84,6 +85,7 @@ export namespace TravelService {
       datetime: payload.campusAt,
       direction,
       ownerId: payload.ownerId,
+      active: !payload.isPrivate,
     });
     if (createRoomResult.isFailure())
       throw new Error('Error al crear la sala de viaje.');
@@ -155,7 +157,7 @@ export namespace TravelService {
   }) => {
     const { roomId, userId, role, seats, price, stopCoords } = params;
     const userHaveActiveTravelResult =
-      await travelRepository.userHaveActiveRide(userId);
+      await travelRepository.userHaveRide(userId);
     if (userHaveActiveTravelResult.isFailure())
       throw new Error('Error al verificar viajes activos del usuario.');
     if (userHaveActiveTravelResult.getValue())
@@ -276,6 +278,15 @@ export namespace TravelService {
     rate: number;
   }) => {
     const result = await travelRepository.rateDriver(params);
+    if (result.isFailure()) throw new Error(result.getError()?.message);
+  };
+
+  export const updateRoomSettings = async (params: {
+    roomId: string;
+    active: boolean;
+    allow: boolean;
+  }) => {
+    const result = await travelRepository.updateRoomSettings(params);
     if (result.isFailure()) throw new Error(result.getError()?.message);
   };
 

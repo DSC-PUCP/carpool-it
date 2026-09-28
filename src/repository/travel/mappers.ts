@@ -55,6 +55,8 @@ export namespace TravelMappers {
           ownerId: data.owner_id,
           datetime: new Date(data.datetime),
           recurrenceRule: data.recurrence_rule as `RRULE:${string}` | null,
+          active: data.active,
+          allow: data.allow,
           currentStop: data.current_stop as number,
           driver: data.driver
             ? {

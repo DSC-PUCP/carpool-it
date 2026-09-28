@@ -343,4 +343,52 @@ ALTER TABLE ONLY public.travel_room_stop
 ALTER TABLE ONLY public.recurrent_travel
     ADD CONSTRAINT recurrent_travel_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profile(id) ON DELETE CASCADE;
 
+CREATE TABLE public.travel_room_message (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    room_id uuid NOT NULL,
+    user_id uuid DEFAULT auth.uid() NOT NULL,
+    content text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT travel_room_message_content_check CHECK ((char_length(content) >= 1) AND (char_length(content) <= 2000)),
+    CONSTRAINT travel_room_message_pkey PRIMARY KEY (id),
+    CONSTRAINT travel_room_message_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.travel_room(id) ON DELETE CASCADE,
+    CONSTRAINT travel_room_message_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profile(id)
+);
+
+CREATE INDEX travel_room_message_room_id_created_at_idx
+    ON public.travel_room_message USING btree (room_id, created_at);
+
+ALTER TABLE public.profile
+    ADD CONSTRAINT profile_tag_length_check
+    CHECK (char_length(btrim(tag)) BETWEEN 1 AND 25)
+    NOT VALID;
+
+ALTER TABLE public.driver
+    ADD CONSTRAINT driver_plate_length_check
+    CHECK (plate IS NULL OR char_length(btrim(plate)) = 3),
+    ADD CONSTRAINT driver_color_not_blank_check
+    CHECK (color IS NULL OR char_length(btrim(color)) > 0),
+    ADD CONSTRAINT driver_seats_positive_check
+    CHECK (seats IS NULL OR seats >= 1),
+    ADD CONSTRAINT driver_price_nonnegative_check
+    CHECK (price >= 0),
+    ADD CONSTRAINT driver_wallet_address_format_check
+    CHECK (wallet_address IS NULL OR wallet_address ~ '^(0x)?[a-fA-F0-9]{40}$');
+
+ALTER TABLE public.location
+    ADD CONSTRAINT location_name_length_check
+    CHECK (char_length(btrim(name)) BETWEEN 1 AND 100);
+
+ALTER TABLE public.travel_room_stop
+    ADD CONSTRAINT travel_room_stop_seats_range_check
+    CHECK (seats BETWEEN 1 AND 8),
+    ADD CONSTRAINT travel_room_stop_price_nonnegative_check
+    CHECK (price >= 0);
+
+ALTER TABLE public.recurrent_travel
+    ADD CONSTRAINT recurrent_travel_seats_range_check
+    CHECK (seats BETWEEN 1 AND 8),
+    ADD CONSTRAINT recurrent_travel_price_nonnegative_check
+    CHECK (price >= 0);
+
 

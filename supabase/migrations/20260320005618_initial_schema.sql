@@ -118,7 +118,7 @@ $$;
 -- Name: get_travel_room_detail(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_travel_room_detail(p_id uuid) RETURNS TABLE(id uuid, owner_id uuid, direction public.travel_direction, datetime timestamp with time zone, recurrence_rule text, current_stop smallint, stops public.travel_room_stop_type[], driver public.driver_type)
+CREATE FUNCTION public.get_travel_room_detail(p_id uuid) RETURNS TABLE(id uuid, owner_id uuid, direction public.travel_direction, datetime timestamp with time zone, recurrence_rule text, active boolean, allow boolean, current_stop smallint, stops public.travel_room_stop_type[], driver public.driver_type)
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
@@ -129,6 +129,8 @@ BEGIN
     tr.direction,
     tr.datetime,
     tr.recurrence_rule,
+    tr.active,
+    tr.allow,
     tr.current_stop,
     (
       select array_agg(
@@ -172,8 +174,25 @@ BEGIN
       )
     ) as driver
   from travel_room tr
-  where tr.id = p_id
-    and tr.active = true;
+  where tr.id = p_id;
+END;
+$$;
+
+CREATE FUNCTION public.update_travel_room_settings(p_room_id uuid, p_active boolean, p_allow boolean) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO public, pg_temp
+    AS $$
+BEGIN
+  UPDATE public.travel_room
+  SET active = p_active,
+      allow = p_allow,
+      updated_at = now()
+  WHERE id = p_room_id
+    AND owner_id = auth.uid();
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Solo el owner puede actualizar la configuración del viaje';
+  END IF;
 END;
 $$;
 
@@ -319,6 +338,8 @@ begin
       tr.direction,
       tr.datetime,
       tr.recurrence_rule,
+      tr.active,
+      tr.allow,
       (
         select array_agg(
           row(
@@ -1010,7 +1031,9 @@ CREATE POLICY "Enable insert for users based on user_id" ON public.travel_room F
 -- Name: travel_room_stop Enable insert for users based on user_id; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Enable insert for users based on user_id" ON public.travel_room_stop FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+CREATE POLICY "Enable insert for users based on user_id" ON public.travel_room_stop FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) = user_id) AND (EXISTS ( SELECT 1
+   FROM public.travel_room tr
+  WHERE ((tr.id = travel_room_stop.room_id) AND tr.allow AND (tr.current_stop = 0)))));
 
 
 --
@@ -1206,4 +1229,113 @@ CREATE TRIGGER on_auth_user_created
 AFTER INSERT ON auth.users
 FOR EACH ROW
 EXECUTE FUNCTION public.handle_new_user();
+
+CREATE TABLE public.travel_room_message (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    room_id uuid NOT NULL REFERENCES public.travel_room(id) ON DELETE CASCADE,
+    user_id uuid DEFAULT auth.uid() NOT NULL REFERENCES public.profile(id),
+    content text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT travel_room_message_content_check CHECK ((char_length(content) >= 1) AND (char_length(content) <= 2000)),
+    CONSTRAINT travel_room_message_pkey PRIMARY KEY (id)
+);
+
+CREATE INDEX travel_room_message_room_id_created_at_idx
+    ON public.travel_room_message USING btree (room_id, created_at);
+
+CREATE FUNCTION public.is_room_member(_room_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.travel_room r
+    WHERE r.id = _room_id AND r.owner_id = auth.uid()
+  )
+  OR EXISTS (
+    SELECT 1
+    FROM public.travel_room_stop s
+    WHERE s.room_id = _room_id AND s.user_id = auth.uid()
+  );
+$$;
+
+CREATE FUNCTION public.broadcast_room_message() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+BEGIN
+  PERFORM realtime.send(
+    jsonb_build_object(
+      'id', NEW.id,
+      'room_id', NEW.room_id,
+      'user_id', NEW.user_id,
+      'tag', (SELECT p.tag FROM public.profile p WHERE p.id = NEW.user_id),
+      'content', NEW.content,
+      'created_at', NEW.created_at
+    ),
+    'message_created',
+    'room:' || NEW.room_id::text,
+    true
+  );
+  RETURN NULL;
+END;
+$$;
+
+ALTER TABLE public.travel_room_message ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "members read" ON public.travel_room_message
+    FOR SELECT TO authenticated
+    USING (public.is_room_member(room_id));
+
+CREATE POLICY "members write" ON public.travel_room_message
+    FOR INSERT TO authenticated
+    WITH CHECK (user_id = auth.uid() AND public.is_room_member(room_id));
+
+CREATE TRIGGER trg_broadcast_room_message
+AFTER INSERT ON public.travel_room_message
+FOR EACH ROW
+EXECUTE FUNCTION public.broadcast_room_message();
+
+CREATE POLICY "members receive room broadcasts" ON realtime.messages
+    FOR SELECT TO authenticated
+    USING (
+      realtime.messages.extension = 'broadcast'
+      AND (SELECT realtime.topic()) LIKE 'room:%'
+      AND public.is_room_member(
+        (split_part((SELECT realtime.topic()), ':', 2))::uuid
+      )
+    );
+
+    ALTER TABLE public.profile
+      ADD CONSTRAINT profile_tag_length_check
+      CHECK (char_length(btrim(tag)) BETWEEN 1 AND 25)
+      NOT VALID;
+
+    ALTER TABLE public.driver
+      ADD CONSTRAINT driver_plate_length_check
+      CHECK (plate IS NULL OR char_length(btrim(plate)) = 3),
+      ADD CONSTRAINT driver_color_not_blank_check
+      CHECK (color IS NULL OR char_length(btrim(color)) > 0),
+      ADD CONSTRAINT driver_seats_positive_check
+      CHECK (seats IS NULL OR seats >= 1),
+      ADD CONSTRAINT driver_price_nonnegative_check
+      CHECK (price >= 0),
+      ADD CONSTRAINT driver_wallet_address_format_check
+      CHECK (wallet_address IS NULL OR wallet_address ~ '^(0x)?[a-fA-F0-9]{40}$');
+
+    ALTER TABLE public.location
+      ADD CONSTRAINT location_name_length_check
+      CHECK (char_length(btrim(name)) BETWEEN 1 AND 100);
+
+    ALTER TABLE public.travel_room_stop
+      ADD CONSTRAINT travel_room_stop_seats_range_check
+      CHECK (seats BETWEEN 1 AND 8),
+      ADD CONSTRAINT travel_room_stop_price_nonnegative_check
+      CHECK (price >= 0);
+
+    ALTER TABLE public.recurrent_travel
+      ADD CONSTRAINT recurrent_travel_seats_range_check
+      CHECK (seats BETWEEN 1 AND 8),
+      ADD CONSTRAINT recurrent_travel_price_nonnegative_check
+      CHECK (price >= 0);
 

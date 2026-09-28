@@ -8,3 +8,8 @@ CREATE TRIGGER on_auth_user_created
 AFTER INSERT ON auth.users
 FOR EACH ROW
 EXECUTE FUNCTION public.handle_new_user();
+
+CREATE TRIGGER trg_broadcast_room_message
+AFTER INSERT ON public.travel_room_message
+FOR EACH ROW
+EXECUTE FUNCTION public.broadcast_room_message();

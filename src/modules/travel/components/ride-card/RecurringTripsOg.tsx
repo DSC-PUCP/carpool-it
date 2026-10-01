@@ -14,6 +14,16 @@ const dayLabels: Record<string, string> = {
   SU: 'D',
 };
 
+const dayLabelsThreeCharacters: Record<string, string> = {
+  MO: 'Lun',
+  TU: 'Mar',
+  WE: 'Mie',
+  TH: 'Jue',
+  FR: 'Vie',
+  SA: 'Sab',
+  SU: 'Dom',
+};
+
 function formatTime(time: string) {
   const [hours, minutes] = time.split(':').map(Number);
   const period = hours >= 12 ? 'PM' : 'AM';
@@ -30,13 +40,10 @@ function formatDays(rule: string) {
   if (frequency === 'MONTHLY') return 'Mensual';
 
   const byDay = parts.find((part) => part.startsWith('BYDAY='))?.split('=')[1];
+  const days = byDay?.split(',');
+  const labels = days && days.length < 4 ? dayLabelsThreeCharacters : dayLabels;
 
-  return (
-    byDay
-      ?.split(',')
-      .map((day) => dayLabels[day] ?? day)
-      .join(', ') ?? 'Diario'
-  );
+  return days?.map((day) => labels[day] ?? day).join(', ') ?? 'Diario';
 }
 
 function RecurringTripRow({ trip }: { trip: RecurringTrip }) {

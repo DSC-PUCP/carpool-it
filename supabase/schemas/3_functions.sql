@@ -202,8 +202,9 @@ CREATE FUNCTION public.rate_driver(p_driver uuid, p_rate integer) RETURNS void
     AS $$BEGIN
   UPDATE public.driver
   SET 
-      rating = ((rating * votes) + p_rate) / (votes + 1),
-      votes = votes + 1
+      rating = ((COALESCE(rating, 0) * COALESCE(votes, 0)) + p_rate) /
+        (COALESCE(votes, 0) + 1),
+      votes = COALESCE(votes, 0) + 1
   WHERE id = p_driver;
 END;$$;
 

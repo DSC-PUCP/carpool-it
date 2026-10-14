@@ -29,7 +29,7 @@ export type DriverInfo = {
   color: string;
   seats: number;
   rides: number;
-  rating: number;
+  rating: number | null;
   votes: number;
   price: number;
   routeDescription?: string | null;

@@ -12,7 +12,7 @@ CREATE TYPE public.driver_type AS (
 	color character varying,
 	seats smallint,
 	rides bigint,
-	rating smallint,
+	rating numeric(3,2),
 	votes bigint,
 	price numeric,
 	user_tag text,

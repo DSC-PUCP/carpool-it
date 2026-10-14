@@ -197,16 +197,38 @@ END;$$;
 -- Name: rate_driver(uuid, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
+CREATE FUNCTION public.get_driver_rating(p_driver uuid)
+RETURNS TABLE(rating numeric, votes bigint)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path = public
+    AS $$
+  SELECT d.rating, d.votes
+  FROM public.driver d
+  WHERE d.id = p_driver;
+$$;
+
 CREATE FUNCTION public.rate_driver(p_driver uuid, p_rate integer) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
-    AS $$BEGIN
+    SET search_path = public
+    AS $$
+BEGIN
+  IF p_rate IS NULL OR p_rate < 1 OR p_rate > 5 THEN
+    RAISE EXCEPTION 'La calificación debe estar entre 1 y 5.';
+  END IF;
+
   UPDATE public.driver
-  SET 
-      rating = ((COALESCE(rating, 0) * COALESCE(votes, 0)) + p_rate) /
-        (COALESCE(votes, 0) + 1),
-      votes = COALESCE(votes, 0) + 1
+  SET
+    rating = (
+      (COALESCE(rating, 0)::numeric * votes + p_rate)::numeric / (votes + 1)
+    )::numeric(3,2),
+    votes = votes + 1
   WHERE id = p_driver;
-END;$$;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'No se encontró el conductor para calificar.';
+  END IF;
+END;
+$$;
 
 
 --

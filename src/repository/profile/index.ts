@@ -15,11 +15,24 @@ export const profileRepository: ProfileRepository = {
     if (error) return Result.error(error);
     if (!data) return Result.error(new Error('Profile not found'));
 
+    let rating = data.rating;
+    let ratingVotes = data.votes;
+
+    if (data.is_driver) {
+      const { data: driverRating, error: driverRatingError } = await supabase
+        .rpc('get_driver_rating', { p_driver: userId })
+        .maybeSingle();
+      if (driverRatingError) return Result.error(driverRatingError);
+      rating = driverRating?.rating ?? null;
+      ratingVotes = Number(driverRating?.votes ?? 0);
+    }
+
     return Result.success({
       id: data.id,
       tag: data.tag,
       avatar: data.avatar,
-      rating: data.rating,
+      rating,
+      ratingVotes,
       ridesCount: data.rides,
       co2Saved: data.contribution,
       isDriver: data.is_driver,
@@ -254,6 +267,15 @@ export const profileRepository: ProfileRepository = {
     if (error) return Result.error(error);
     if (!data) return Result.error(new Error('Profile not found'));
 
+    let rating = data.user_rating;
+    if (data.is_driver) {
+      const { data: driverRating, error: driverRatingError } = await supabase
+        .rpc('get_driver_rating', { p_driver: data.user_id })
+        .maybeSingle();
+      if (driverRatingError) return Result.error(driverRatingError);
+      rating = driverRating?.rating ?? null;
+    }
+
     const recurrentTrips = (
       (data.recurrent_travels as Array<Record<string, unknown>>) ?? []
     ).map((t) => ({
@@ -279,7 +301,7 @@ export const profileRepository: ProfileRepository = {
       id: data.user_id,
       tag: data.user_tag,
       avatar: data.user_avatar,
-      rating: data.user_rating,
+      rating,
       ridesCount: Number(data.user_rides ?? 0),
       isDriver: data.is_driver,
       recurrentTrips,

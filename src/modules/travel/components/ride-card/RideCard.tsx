@@ -109,8 +109,8 @@ export default function RideCard(
 
   const driverName = driver?.userTag ?? 'Taxi';
   const driverInitial = driverName.charAt(0).toUpperCase();
-  const driverRating = driver?.rating ?? 0;
-  const driverRides = driver?.rides ?? 0;
+  const driverRating = driver?.rating;
+  const driverVotes = driver?.votes ?? 0;
   const carInfo = driver
     ? `***-${driver.plate} • ${driver.color}`
     : 'Vehículo externo';
@@ -275,10 +275,16 @@ export default function RideCard(
                   <div className="flex items-center gap-1 mt-0.5">
                     <Star
                       size={10}
-                      className="text-yellow-400 fill-yellow-400"
+                      className={
+                        driverVotes > 0
+                          ? 'text-yellow-400 fill-yellow-400'
+                          : 'text-muted-foreground'
+                      }
                     />
                     <span className="text-[10px] text-muted-foreground">
-                      {driverRating.toFixed(1)} ({driverRides})
+                      {driverVotes > 0 && driverRating != null
+                        ? `${driverRating.toFixed(1)} (${driverVotes})`
+                        : 'Sin calificaciones'}
                     </span>
                   </div>
                 )}

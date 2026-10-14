@@ -11,7 +11,7 @@ CREATE TABLE public.driver (
     color character varying(30),
     seats smallint DEFAULT 4,
     rides bigint DEFAULT 0 NOT NULL,
-    rating smallint,
+    rating numeric(3,2),
     votes bigint DEFAULT 0 NOT NULL,
     price numeric DEFAULT '5'::numeric NOT NULL,
     qr_url text,

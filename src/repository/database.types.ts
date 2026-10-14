@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: '14.1';
+    PostgrestVersion: '14.5';
   };
   public: {
     Tables: {
@@ -146,133 +146,37 @@ export type Database = {
           },
         ];
       };
-      travel_room: {
+      push_device_token: {
         Row: {
           active: boolean;
-          allow: boolean;
           created_at: string;
-          current_stop: number;
-          datetime: string;
-          direction: Database['public']['Enums']['travel_direction'];
           id: string;
-          owner_id: string;
-          recurrence_rule: string | null;
+          platform: string | null;
+          token: string;
           updated_at: string;
+          user_id: string;
         };
         Insert: {
           active?: boolean;
-          allow?: boolean;
           created_at?: string;
-          current_stop?: number;
-          datetime: string;
-          direction: Database['public']['Enums']['travel_direction'];
           id?: string;
-          owner_id: string;
-          recurrence_rule?: string | null;
+          platform?: string | null;
+          token: string;
           updated_at?: string;
+          user_id: string;
         };
         Update: {
           active?: boolean;
-          allow?: boolean;
           created_at?: string;
-          current_stop?: number;
-          datetime?: string;
-          direction?: Database['public']['Enums']['travel_direction'];
           id?: string;
-          owner_id?: string;
-          recurrence_rule?: string | null;
+          platform?: string | null;
+          token?: string;
           updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'travel_room_owner_id_fkey1';
-            columns: ['owner_id'];
-            isOneToOne: false;
-            referencedRelation: 'profile';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      travel_room_stop: {
-        Row: {
-          confirmed: boolean;
-          created_at: string;
-          price: number;
-          room_id: string;
-          seats: number;
-          stop_coords: unknown;
-          user_id: string;
-          user_role: Database['public']['Enums']['user_role'];
-        };
-        Insert: {
-          confirmed?: boolean;
-          created_at?: string;
-          price?: number;
-          room_id: string;
-          seats?: number;
-          stop_coords: unknown;
-          user_id: string;
-          user_role: Database['public']['Enums']['user_role'];
-        };
-        Update: {
-          confirmed?: boolean;
-          created_at?: string;
-          price?: number;
-          room_id?: string;
-          seats?: number;
-          stop_coords?: unknown;
-          user_id?: string;
-          user_role?: Database['public']['Enums']['user_role'];
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'travel_room_stop_room_id_fkey';
-            columns: ['room_id'];
-            isOneToOne: false;
-            referencedRelation: 'travel_room';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'travel_room_stop_user_id_fkey1';
-            columns: ['user_id'];
-            isOneToOne: false;
-            referencedRelation: 'profile';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      travel_room_message: {
-        Row: {
-          content: string;
-          created_at: string;
-          id: string;
-          room_id: string;
-          user_id: string;
-        };
-        Insert: {
-          content: string;
-          created_at?: string;
-          id?: string;
-          room_id: string;
-          user_id?: string;
-        };
-        Update: {
-          content?: string;
-          created_at?: string;
-          id?: string;
-          room_id?: string;
           user_id?: string;
         };
         Relationships: [
           {
-            foreignKeyName: 'travel_room_message_room_id_fkey';
-            columns: ['room_id'];
-            isOneToOne: false;
-            referencedRelation: 'travel_room';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'travel_room_message_user_id_fkey';
+            foreignKeyName: 'push_device_token_user_id_fkey';
             columns: ['user_id'];
             isOneToOne: false;
             referencedRelation: 'profile';
@@ -336,12 +240,169 @@ export type Database = {
           },
         ];
       };
+      travel_room: {
+        Row: {
+          active: boolean;
+          allow: boolean;
+          created_at: string;
+          current_stop: number;
+          datetime: string;
+          direction: Database['public']['Enums']['travel_direction'];
+          id: string;
+          owner_id: string;
+          recurrence_rule: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          active?: boolean;
+          allow?: boolean;
+          created_at?: string;
+          current_stop?: number;
+          datetime: string;
+          direction: Database['public']['Enums']['travel_direction'];
+          id?: string;
+          owner_id: string;
+          recurrence_rule?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          allow?: boolean;
+          created_at?: string;
+          current_stop?: number;
+          datetime?: string;
+          direction?: Database['public']['Enums']['travel_direction'];
+          id?: string;
+          owner_id?: string;
+          recurrence_rule?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'travel_room_owner_id_fkey1';
+            columns: ['owner_id'];
+            isOneToOne: false;
+            referencedRelation: 'profile';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      travel_room_message: {
+        Row: {
+          content: string;
+          created_at: string;
+          id: string;
+          room_id: string;
+          user_id: string;
+        };
+        Insert: {
+          content: string;
+          created_at?: string;
+          id?: string;
+          room_id: string;
+          user_id?: string;
+        };
+        Update: {
+          content?: string;
+          created_at?: string;
+          id?: string;
+          room_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'travel_room_message_room_id_fkey';
+            columns: ['room_id'];
+            isOneToOne: false;
+            referencedRelation: 'travel_room';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'travel_room_message_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profile';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      travel_room_stop: {
+        Row: {
+          confirmed: boolean;
+          created_at: string;
+          price: number;
+          room_id: string;
+          seats: number;
+          stop_coords: unknown;
+          user_id: string;
+          user_role: Database['public']['Enums']['user_role'];
+        };
+        Insert: {
+          confirmed?: boolean;
+          created_at?: string;
+          price?: number;
+          room_id: string;
+          seats?: number;
+          stop_coords: unknown;
+          user_id: string;
+          user_role: Database['public']['Enums']['user_role'];
+        };
+        Update: {
+          confirmed?: boolean;
+          created_at?: string;
+          price?: number;
+          room_id?: string;
+          seats?: number;
+          stop_coords?: unknown;
+          user_id?: string;
+          user_role?: Database['public']['Enums']['user_role'];
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'travel_room_stop_room_id_fkey';
+            columns: ['room_id'];
+            isOneToOne: false;
+            referencedRelation: 'travel_room';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'travel_room_stop_user_id_fkey1';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profile';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
+      count_user_recurrent_travels: {
+        Args: { p_user_id: string };
+        Returns: number;
+      };
       get_available_seats: { Args: { p_room_id: string }; Returns: number };
+      get_driver_rating: {
+        Args: { p_driver: string };
+        Returns: {
+          rating: number;
+          votes: number;
+        }[];
+      };
+      get_public_recurrent_travels_by_tag: {
+        Args: { p_user_tag: string };
+        Returns: {
+          is_driver: boolean;
+          recurrent_travels: Json;
+          user_avatar: string;
+          user_id: string;
+          user_rating: number;
+          user_rides: number;
+          user_tag: string;
+        }[];
+      };
       get_travel_room_detail: {
         Args: { p_id: string };
         Returns: {
@@ -360,50 +421,23 @@ export type Database = {
       get_user_recurrent_travels: {
         Args: { p_user_id: string };
         Returns: {
-          id: string;
-          direction: Database['public']['Enums']['travel_direction'];
-          origin_coords: number[];
+          created_at: string;
           destination_coords: number[];
-          seats: number;
+          direction: Database['public']['Enums']['travel_direction'];
+          id: string;
+          is_visible: boolean;
+          origin_coords: number[];
           price: number;
           recurrence_rule: string;
-          route_description: string | null;
-          is_visible: boolean;
+          route_description: string;
+          seats: number;
           trip_time: string;
-          created_at: string;
         }[];
-      };
-      get_public_recurrent_travels_by_tag: {
-        Args: { p_user_tag: string };
-        Returns: {
-          user_id: string;
-          user_tag: string;
-          user_avatar: string | null;
-          user_rating: number | null;
-          user_rides: number;
-          is_driver: boolean;
-          recurrent_travels: Json;
-        }[];
-      };
-      count_user_recurrent_travels: {
-        Args: { p_user_id: string };
-        Returns: number;
-      };
-      search_visible_recurrent_travels: {
-        Args: {
-          p_direction?: Database['public']['Enums']['travel_direction'];
-          p_limit?: number;
-          p_offset?: number;
-        };
-        Returns: Json;
       };
       increment_profile_rides: { Args: { p_id: string }; Returns: undefined };
+      is_room_member: { Args: { _room_id: string }; Returns: boolean };
       rate_driver: {
         Args: { p_driver: string; p_rate: number };
-        Returns: undefined;
-      };
-      update_travel_room_settings: {
-        Args: { p_active: boolean; p_allow: boolean; p_room_id: string };
         Returns: undefined;
       };
       search_travel_rooms: {
@@ -417,6 +451,18 @@ export type Database = {
           p_only_offers?: boolean;
         };
         Returns: Json;
+      };
+      search_visible_recurrent_travels: {
+        Args: {
+          p_direction?: Database['public']['Enums']['travel_direction'];
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Json;
+      };
+      update_travel_room_settings: {
+        Args: { p_active: boolean; p_allow: boolean; p_room_id: string };
+        Returns: undefined;
       };
     };
     Enums: {

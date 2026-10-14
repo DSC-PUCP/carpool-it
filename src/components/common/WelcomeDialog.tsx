@@ -58,14 +58,14 @@ export default function WelcomeDialog() {
               .
             </li>
             <li>
-              Instala o agrega el app a tu celular{' '}
+              Instala o agrega el app a tu celular desde{' '}
               <Link
                 to="/profile/asisstance"
                 hash="agregar-a-pantalla-de-inicio"
                 onClick={handleClose}
                 className="font-medium text-primary underline underline-offset-4 transition-opacity hover:opacity-80"
               >
-                aquí
+                asístencia
               </Link>{' '}
               y sigue los pasos.
             </li>

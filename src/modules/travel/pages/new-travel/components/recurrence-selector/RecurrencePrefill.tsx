@@ -21,6 +21,41 @@ interface RecurrencePrefillProps {
   onSelect?: () => void;
 }
 
+function formatTime12(time: string): string {
+  const [hours, minutes] = time.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hour = hours % 12 || 12;
+  return `${hour}:${String(minutes).padStart(2, '0')} ${period}`;
+}
+
+function formatRecurrence(rule: string): string {
+  const parts = rule.replace('RRULE:', '').split(';');
+  const frequency = parts
+    .find((part) => part.startsWith('FREQ='))
+    ?.split('=')[1];
+
+  if (frequency === 'DAILY') return 'Diario';
+  if (frequency === 'MONTHLY') return 'Mensual';
+
+  const dayLabels: Record<string, string> = {
+    MO: 'L',
+    TU: 'M',
+    WE: 'X',
+    TH: 'J',
+    FR: 'V',
+    SA: 'S',
+    SU: 'D',
+  };
+  const days = parts
+    .find((part) => part.startsWith('BYDAY='))
+    ?.split('=')[1]
+    ?.split(',')
+    .map((day) => dayLabels[day] ?? day)
+    .join(', ');
+
+  return days ?? 'Semanal';
+}
+
 export default function RecurrencePrefill({ trips }: RecurrencePrefillProps) {
   const { setValue } = useFormContext<FormSchema>();
   const [open, setOpen] = useState(false);
@@ -50,7 +85,7 @@ export default function RecurrencePrefill({ trips }: RecurrencePrefillProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="w-full">
+        <Button variant="outline" size="sm" className="w-full my-2">
           <Bookmark className="mr-2 h-4 w-4" />
           Usar viaje recurrente
         </Button>
@@ -111,7 +146,8 @@ function RecurrentTripOption({
         {originLabel} → {destinationLabel}
       </p>
       <p className="text-xs text-muted-foreground mt-1">
-        {trip.seats} asientos · S/. {trip.price.toFixed(2)}
+        {formatRecurrence(trip.recurrenceRule)} · {formatTime12(trip.tripTime)}{' '}
+        · {trip.seats} asientos · S/. {trip.price.toFixed(2)}
       </p>
     </button>
   );

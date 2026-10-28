@@ -8,6 +8,7 @@ export interface UserProfile {
   tag: string;
   avatar: string | null;
   rating: number | null;
+  ratingVotes: number;
   ridesCount: number;
   co2Saved: number;
   isDriver: boolean;

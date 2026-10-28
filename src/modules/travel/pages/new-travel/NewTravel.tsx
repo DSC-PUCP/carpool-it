@@ -1,5 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate, useRouteContext } from '@tanstack/react-router';
+import {
+  useLoaderData,
+  useNavigate,
+  useRouteContext,
+} from '@tanstack/react-router';
 import { ArrowRight } from 'lucide-react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -10,7 +14,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useLocations } from '@/hooks/use-locations';
 import { useProfile } from '@/hooks/use-profile';
 import { useVehicle } from '@/hooks/use-vehicle';
-import { cn, getDirectionByHour, getNowInLima } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { useCreateLocation } from '@/modules/profile/pages/location/hooks/useCreateLocation';
 import type { LatLngTuple } from '@/modules/travel/const';
 import { universityCoordinates } from '../../const';
@@ -25,9 +29,11 @@ import RouteInputs from './components/route-inputs/RouteInputs';
 import { usePublishRide } from './hooks/usePublishRide';
 import { useRecurringTrips } from './hooks/useRecurringTrips';
 import { useSetDriver } from './hooks/useSetDriver';
-import { getDefaultDate } from './utils';
 
 export default function NewTravel() {
+  const { defaultDate, defaultDirection } = useLoaderData({
+    from: '/_layout/_auth/travel/new',
+  });
   const { user } = useRouteContext({
     from: '/_layout/_auth/travel/new',
   });
@@ -45,10 +51,6 @@ export default function NewTravel() {
     : ('request' as 'offer' | 'request');
   const defaultSeats = vehicleData ? vehicleData.seats : 1;
   const defaultPrice = vehicleData ? vehicleData.price : 5;
-  const nowInLima = getNowInLima();
-  const defaultDirection = getDirectionByHour(nowInLima.getHours());
-  const defaultDate = getDefaultDate(nowInLima);
-
   const defaultLocation = profileData?.locationId
     ? locationsData?.find((loc) => loc.id === profileData.locationId)?.coords
     : undefined;
@@ -82,6 +84,7 @@ export default function NewTravel() {
       isVisible: true,
       isPrefilledRecurrent: false,
       tripTime: '08:00',
+      isPrivate: false,
     },
   });
 
@@ -114,6 +117,7 @@ export default function NewTravel() {
         campusAt: data.date,
         requestedSeats: data.seats,
         price: data.price,
+        isPrivate: data.isPrivate,
         isRecurrent: data.isRecurrent,
         recurrenceRule: data.isRecurrent ? data.recurrenceRule : undefined,
         isVisible: data.isRecurrent ? data.isVisible : undefined,
@@ -245,5 +249,6 @@ const formSchema = z.object({
   isVisible: z.boolean().default(true),
   isPrefilledRecurrent: z.boolean().default(false),
   tripTime: z.string().default('08:00'),
+  isPrivate: z.boolean(),
 });
 export type FormSchema = z.infer<typeof formSchema>;

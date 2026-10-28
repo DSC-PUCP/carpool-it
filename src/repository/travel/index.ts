@@ -4,13 +4,12 @@ import { Result } from '@/lib/utils';
 import { TravelMappers } from './mappers';
 
 export const travelRepository: TravelRepository = {
-  userHaveActiveRide: async (userId) => {
+  userHaveRide: async (userId) => {
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('travel_room_stop')
       .select('room_id, travel_room(active,recurrence_rule)')
       .eq('user_id', userId)
-      .eq('travel_room.active', true)
       .is('travel_room.recurrence_rule', null)
       .maybeSingle();
 
@@ -90,6 +89,7 @@ export const travelRepository: TravelRepository = {
         owner_id: input.ownerId,
         datetime: input.datetime.toISOString(),
         direction: input.direction,
+        active: input.active,
       })
       .select('id')
       .single();
@@ -175,6 +175,17 @@ export const travelRepository: TravelRepository = {
       .update({ owner_id: params.newOwnerId })
       .eq('id', params.roomId);
 
+    if (error) return Result.error(error);
+    return Result.success();
+  },
+
+  updateRoomSettings: async (params) => {
+    const supabase = getSupabaseClient();
+    const { error } = await supabase.rpc('update_travel_room_settings', {
+      p_room_id: params.roomId,
+      p_active: params.active,
+      p_allow: params.allow,
+    });
     if (error) return Result.error(error);
     return Result.success();
   },

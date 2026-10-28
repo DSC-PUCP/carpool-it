@@ -37,13 +37,51 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION public.is_room_member(_room_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.travel_room r
+    WHERE r.id = _room_id AND r.owner_id = auth.uid()
+  )
+  OR EXISTS (
+    SELECT 1
+    FROM public.travel_room_stop s
+    WHERE s.room_id = _room_id AND s.user_id = auth.uid()
+  );
+$$;
+
+CREATE FUNCTION public.broadcast_room_message() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+BEGIN
+  PERFORM realtime.send(
+    jsonb_build_object(
+      'id', NEW.id,
+      'room_id', NEW.room_id,
+      'user_id', NEW.user_id,
+      'tag', (SELECT p.tag FROM public.profile p WHERE p.id = NEW.user_id),
+      'content', NEW.content,
+      'created_at', NEW.created_at
+    ),
+    'message_created',
+    'room:' || NEW.room_id::text,
+    true
+  );
+  RETURN NULL;
+END;
+$$;
+
 
 --
 -- TOC entry 1580 (class 1255 OID 52663)
 -- Name: get_travel_room_detail(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_travel_room_detail(p_id uuid) RETURNS TABLE(id uuid, owner_id uuid, direction public.travel_direction, datetime timestamp with time zone, recurrence_rule text, current_stop smallint, stops public.travel_room_stop_type[], driver public.driver_type)
+CREATE FUNCTION public.get_travel_room_detail(p_id uuid) RETURNS TABLE(id uuid, owner_id uuid, direction public.travel_direction, datetime timestamp with time zone, recurrence_rule text, active boolean, allow boolean, current_stop smallint, stops public.travel_room_stop_type[], driver public.driver_type)
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
@@ -54,6 +92,8 @@ BEGIN
     tr.direction,
     tr.datetime,
     tr.recurrence_rule,
+    tr.active,
+    tr.allow,
     tr.current_stop,
     (
       select array_agg(
@@ -97,8 +137,25 @@ BEGIN
       )
     ) as driver
   from travel_room tr
-  where tr.id = p_id
-    and tr.active = true;
+  where tr.id = p_id;
+END;
+$$;
+
+CREATE FUNCTION public.update_travel_room_settings(p_room_id uuid, p_active boolean, p_allow boolean) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO public, pg_temp
+    AS $$
+BEGIN
+  UPDATE public.travel_room
+  SET active = p_active,
+      allow = p_allow,
+      updated_at = now()
+  WHERE id = p_room_id
+    AND owner_id = auth.uid();
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Solo el owner puede actualizar la configuración del viaje';
+  END IF;
 END;
 $$;
 
@@ -140,15 +197,38 @@ END;$$;
 -- Name: rate_driver(uuid, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
+CREATE FUNCTION public.get_driver_rating(p_driver uuid)
+RETURNS TABLE(rating numeric, votes bigint)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path = public
+    AS $$
+  SELECT d.rating, d.votes
+  FROM public.driver d
+  WHERE d.id = p_driver;
+$$;
+
 CREATE FUNCTION public.rate_driver(p_driver uuid, p_rate integer) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
-    AS $$BEGIN
+    SET search_path = public
+    AS $$
+BEGIN
+  IF p_rate IS NULL OR p_rate < 1 OR p_rate > 5 THEN
+    RAISE EXCEPTION 'La calificación debe estar entre 1 y 5.';
+  END IF;
+
   UPDATE public.driver
-  SET 
-      rating = ((rating * votes) + p_rate) / (votes + 1),
-      votes = votes + 1
+  SET
+    rating = (
+      (COALESCE(rating, 0)::numeric * votes + p_rate)::numeric / (votes + 1)
+    )::numeric(3,2),
+    votes = votes + 1
   WHERE id = p_driver;
-END;$$;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'No se encontró el conductor para calificar.';
+  END IF;
+END;
+$$;
 
 
 --
@@ -244,6 +324,8 @@ begin
       tr.direction,
       tr.datetime,
       tr.recurrence_rule,
+      tr.active,
+      tr.allow,
       (
         select array_agg(
           row(

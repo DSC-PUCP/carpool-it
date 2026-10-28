@@ -2,6 +2,7 @@ import { Link, useRouteContext } from '@tanstack/react-router';
 import { es } from 'date-fns/locale';
 import { formatInTimeZone } from 'date-fns-tz';
 import { Armchair, CarTaxiFront, Info, MapPinned, Star } from 'lucide-react';
+import type { ReactNode } from 'react';
 import {
   Avatar,
   AvatarFallback,
@@ -35,10 +36,23 @@ import {
 } from '../../utils';
 
 export default function RideCard(
-  props: Omit<TravelRoom, 'currentStop'> & { hideActions?: boolean }
+  props: Omit<TravelRoom, 'currentStop'> & {
+    hideActions?: boolean;
+    hideRouteInfo?: boolean;
+    settingsControl?: ReactNode;
+  }
 ) {
   const { user } = useRouteContext({ from: '__root__' });
-  const { id, direction, datetime, driver, stops, hideActions } = props;
+  const {
+    id,
+    direction,
+    datetime,
+    driver,
+    stops,
+    hideActions,
+    hideRouteInfo,
+    settingsControl,
+  } = props;
 
   const isToCampus = direction === 'to_campus';
 
@@ -95,8 +109,8 @@ export default function RideCard(
 
   const driverName = driver?.userTag ?? 'Taxi';
   const driverInitial = driverName.charAt(0).toUpperCase();
-  const driverRating = driver?.rating ?? 0;
-  const driverRides = driver?.rides ?? 0;
+  const driverRating = driver?.rating;
+  const driverVotes = driver?.votes ?? 0;
   const carInfo = driver
     ? `***-${driver.plate} • ${driver.color}`
     : 'Vehículo externo';
@@ -261,10 +275,16 @@ export default function RideCard(
                   <div className="flex items-center gap-1 mt-0.5">
                     <Star
                       size={10}
-                      className="text-yellow-400 fill-yellow-400"
+                      className={
+                        driverVotes > 0
+                          ? 'text-yellow-400 fill-yellow-400'
+                          : 'text-muted-foreground'
+                      }
                     />
                     <span className="text-[10px] text-muted-foreground">
-                      {driverRating.toFixed(1)} ({driverRides})
+                      {driverVotes > 0 && driverRating != null
+                        ? `${driverRating.toFixed(1)} (${driverVotes})`
+                        : 'Sin calificaciones'}
                     </span>
                   </div>
                 )}
@@ -308,7 +328,7 @@ export default function RideCard(
           </div>
           <div className="flex flex-col gap-2">
             <div className="flex flex-row justify-start gap-2">
-              {routeDescription && (
+              {routeDescription && !hideRouteInfo && (
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button size="icon" variant="outline" className="h-8 w-8">
@@ -324,6 +344,7 @@ export default function RideCard(
                   </DialogContent>
                 </Dialog>
               )}
+              {settingsControl}
               <Button size="sm" variant="ghost" className="text-xs" asChild>
                 <a href={googleMapsUrl} target="_blank" rel="noreferrer">
                   <MapPinned /> Ver Ruta

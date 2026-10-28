@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router';
 import { Clock, DoorOpen, HelpCircle, MapPin, Plus, Send } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { ChatMessageItem } from '@/components/chat-message';
 import { Button } from '@/components/ui/button';
@@ -11,13 +11,12 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useChatScroll } from '@/hooks/use-chat-scroll';
-import { type ChatMessage, useRealtimeChat } from '@/hooks/use-realtime-chat';
+import { useRealtimeChat } from '@/hooks/use-realtime-chat';
 import { cn } from '@/lib/utils';
 
 interface TravelChatProps {
   roomId: string;
-  username: string;
-  userId: string;
+  currentUserId: string;
 }
 
 const QUICK_MESSAGES = [
@@ -28,20 +27,12 @@ const QUICK_MESSAGES = [
 
 const SEND_COOLDOWN_MS = 1500;
 
-export default function TravelChat({
-  roomId,
-  username,
-  userId,
-}: TravelChatProps) {
+export default function TravelChat({ roomId, currentUserId }: TravelChatProps) {
   const { containerRef, scrollToBottom } = useChatScroll();
   const inputRef = useRef<HTMLInputElement>(null);
   const navigation = useNavigate();
   const cooldownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const {
-    messages: realtimeMessages,
-    sendMessage,
-    isConnected,
-  } = useRealtimeChat({ roomName: roomId, username, actorUserId: userId });
+  const { messages, sendMessage, isConnected } = useRealtimeChat({ roomId });
 
   const [newMessage, setNewMessage] = useState('');
   const [quickOpen, setQuickOpen] = useState(false);
@@ -56,14 +47,9 @@ export default function TravelChat({
     };
   }, []);
 
-  const allMessages = useMemo(() => {
-    const sorted = [...realtimeMessages].sort((a, b) =>
-      a.createdAt.localeCompare(b.createdAt)
-    );
-    // Side-effect: scroll after render when messages change
-    queueMicrotask(() => scrollToBottom());
-    return sorted;
-  }, [realtimeMessages, scrollToBottom]);
+  useEffect(() => {
+    if (messages.length > 0) scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   const showLocationHelpToast = useCallback(() => {
     toast.error(
@@ -127,14 +113,10 @@ export default function TravelChat({
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        const msg: ChatMessage = {
-          id: crypto.randomUUID(),
-          content: 'Estoy acá 📍',
-          user: { name: username },
-          createdAt: new Date().toISOString(),
-          location: { lat: latitude, lng: longitude },
-        };
-        sendMessage(msg.content, msg.location);
+        sendMessage('Estoy acá 📍', {
+          lat: latitude,
+          lng: longitude,
+        });
         startSendCooldown();
         setIsSendingLocation(false);
         setQuickOpen(false);
@@ -145,13 +127,7 @@ export default function TravelChat({
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  }, [
-    canSendMessage,
-    sendMessage,
-    showLocationHelpToast,
-    startSendCooldown,
-    username,
-  ]);
+  }, [canSendMessage, sendMessage, showLocationHelpToast, startSendCooldown]);
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -160,15 +136,15 @@ export default function TravelChat({
         ref={containerRef}
         className="flex-1 overflow-y-auto px-4 py-2 min-h-30 max-h-[40vh]"
       >
-        {allMessages.length === 0 ? (
+        {messages.length === 0 ? (
           <p className="text-center text-xs text-muted-foreground py-6">
             Sin mensajes aún. ¡Inicia la conversación!
           </p>
         ) : (
           <div className="space-y-1">
-            {allMessages.map((message, index) => {
-              const prev = index > 0 ? allMessages[index - 1] : null;
-              const showHeader = !prev || prev.user.name !== message.user.name;
+            {messages.map((message, index) => {
+              const prev = index > 0 ? messages[index - 1] : null;
+              const showHeader = !prev || prev.userId !== message.userId;
 
               return (
                 <div
@@ -177,7 +153,7 @@ export default function TravelChat({
                 >
                   <ChatMessageItem
                     message={message}
-                    isOwnMessage={message.user.name === username}
+                    isOwnMessage={message.userId === currentUserId}
                     showHeader={showHeader}
                   />
                 </div>

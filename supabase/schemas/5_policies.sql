@@ -72,7 +72,9 @@ CREATE POLICY "Enable insert for users based on user_id" ON public.travel_room F
 -- Name: travel_room_stop Enable insert for users based on user_id; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Enable insert for users based on user_id" ON public.travel_room_stop FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+CREATE POLICY "Enable insert for users based on user_id" ON public.travel_room_stop FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) = user_id) AND (EXISTS ( SELECT 1
+   FROM public.travel_room tr
+  WHERE ((tr.id = travel_room_stop.room_id) AND tr.allow AND (tr.current_stop = 0)))));
 
 
 --
@@ -257,4 +259,21 @@ CREATE POLICY "Enable update for users based on user_id" ON public.recurrent_tra
 --
 
 CREATE POLICY "Enable delete for users based on user_id" ON public.recurrent_travel FOR DELETE TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
+
+ALTER TABLE public.travel_room_message ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "members read" ON public.travel_room_message FOR SELECT TO authenticated
+    USING (public.is_room_member(room_id));
+
+CREATE POLICY "members write" ON public.travel_room_message FOR INSERT TO authenticated
+    WITH CHECK ((user_id = auth.uid()) AND public.is_room_member(room_id));
+
+CREATE POLICY "members receive room broadcasts" ON realtime.messages FOR SELECT TO authenticated
+    USING (
+      realtime.messages.extension = 'broadcast'
+      AND (SELECT realtime.topic()) LIKE 'room:%'
+      AND public.is_room_member(
+        (split_part((SELECT realtime.topic()), ':', 2))::uuid
+      )
+    );
 

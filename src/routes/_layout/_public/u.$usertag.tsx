@@ -14,7 +14,7 @@ import { ProfileService } from '@/modules/profile/services';
 export const Route = createFileRoute('/_layout/_public/u/$usertag')({
   component: RouteComponent,
   loader: async ({ context: { queryClient }, params }) => {
-    const result = await queryClient.ensureQueryData({
+    const result = await queryClient.query({
       queryKey: [QueryKeys.RECURRENTS, params.usertag],
       queryFn: () => ProfileService.getPublicProfileByTag(params.usertag),
     });

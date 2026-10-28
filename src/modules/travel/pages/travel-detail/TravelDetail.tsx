@@ -21,6 +21,7 @@ import { useLocations } from '@/hooks/use-locations';
 import { useProfile } from '@/hooks/use-profile';
 import { AuthService } from '@/modules/auth/services';
 import { ProfileService } from '@/modules/profile/services';
+import { TravelService } from '@/modules/travel/services';
 import RideCard from '../../components/ride-card/RideCard';
 import DefaultLocationDialog from './components/DefaultLocationDialog';
 import DriverPaymentMethods from './components/DriverPaymentMethods';
@@ -28,6 +29,7 @@ import DriverRoleDialog from './components/DriverRoleDialog';
 import NextStepDialog from './components/NextStepDialog';
 import QuitDialog from './components/QuitDialog';
 import TravelChat from './components/TravelChat';
+import TravelSettingsDialog from './components/TravelSettingsDialog';
 import { useJoinRide } from './hooks/useJoinRide';
 import { useLeaveRide } from './hooks/useLeaveRide';
 import { hasRatedDriver, useRateDriver } from './hooks/useRateDriver';
@@ -50,6 +52,7 @@ export default function TravelDetail() {
   const [isRateDialogOpen, setIsRateDialogOpen] = useState(false);
   const [isDriverRoleDialogOpen, setIsDriverRoleDialogOpen] = useState(false);
   const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false);
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [selectedRate, setSelectedRate] = useState(0);
   const [hoveredRate, setHoveredRate] = useState(0);
   const queryClient = useQueryClient();
@@ -63,6 +66,19 @@ export default function TravelDetail() {
     travel?.id ?? '',
     user?.id ?? ''
   );
+  const { mutate: updateRoomSettings, isPending: isUpdatingSettings } =
+    useMutation({
+      mutationFn: TravelService.updateRoomSettings,
+      onError: (error) => {
+        toast.error(error.message || 'No se pudo actualizar la configuración.');
+      },
+      onSuccess: () => {
+        void queryClient.invalidateQueries({
+          queryKey: [QueryKeys.TRAVEL_DETAIL, travel?.id],
+        });
+        toast.success('Configuración actualizada.');
+      },
+    });
   const { mutate: createLocation, isPending: isSavingLocation } = useMutation({
     mutationFn: ProfileService.addLocation,
     onError: (error) => {
@@ -170,7 +186,36 @@ export default function TravelDetail() {
     <>
       <main className="flex-1 flex flex-col px-4 pt-4 gap-6">
         <div style={{ viewTransitionName: `ride-card-${travel.id}` }}>
-          <RideCard {...travel} hideActions />
+          <RideCard
+            {...travel}
+            hideActions
+            hideRouteInfo={isOwner}
+            settingsControl={
+              isOwner ? (
+                <TravelSettingsDialog
+                  open={isSettingsDialogOpen}
+                  onOpenChange={setIsSettingsDialogOpen}
+                  active={travel.active}
+                  allow={travel.allow}
+                  isPending={isUpdatingSettings}
+                  onActiveChange={(active) =>
+                    updateRoomSettings({
+                      roomId: travel.id,
+                      active,
+                      allow: travel.allow,
+                    })
+                  }
+                  onAllowChange={(allow) =>
+                    updateRoomSettings({
+                      roomId: travel.id,
+                      active: travel.active,
+                      allow,
+                    })
+                  }
+                />
+              ) : undefined
+            }
+          />
         </div>
 
         <DriverRoleDialog
@@ -281,11 +326,7 @@ export default function TravelDetail() {
 
         {isMember && user && hasMultipleParticipants && (
           <div className="flex-1 flex flex-col min-h-0 rounded-xl border">
-            <TravelChat
-              roomId={travel.id}
-              username={user.fullName}
-              userId={user.id}
-            />
+            <TravelChat roomId={travel.id} currentUserId={user.id} />
           </div>
         )}
       </main>
@@ -304,6 +345,10 @@ export default function TravelDetail() {
                 <NextStepDialog travel={travel} userId={user.id} />
               )}
             </div>
+          ) : !travel.allow ? (
+            <p className="text-center text-sm text-muted-foreground">
+              Este viaje no acepta nuevos integrantes.
+            </p>
           ) : (
             <Button
               className="w-full h-12  py-2"

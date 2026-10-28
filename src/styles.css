@@ -1,6 +1,5 @@
-@import "./assets/styles/fonts.css";
 @import "tailwindcss";
-
+@import '@fontsource-variable/space-grotesk';
 @import "tw-animate-css";
 @import "./assets/styles/view-transitions.css";
 
@@ -9,7 +8,7 @@
 body {
   @apply m-0;
   letter-spacing: var(--tracking-normal);
-  font-family: "Space Grotesk", "Inter", sans-serif;
+  font-family: "Space Grotesk Variable", "Inter", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -200,5 +199,17 @@ code {
   }
   .maplibregl-popup-tip {
     @apply hidden!;
+  }
+  .maplibregl-ctrl-attrib {
+    @apply bg-background! text-muted-foreground! border-border! rounded-md! border! shadow-sm!;
+  }
+  .maplibregl-ctrl-attrib a {
+    @apply text-muted-foreground!;
+  }
+  .maplibregl-ctrl-attrib a:hover {
+    @apply text-foreground!;
+  }
+  .maplibregl-ctrl-attrib-button {
+    @apply bg-transparent! dark:invert;
   }
 }

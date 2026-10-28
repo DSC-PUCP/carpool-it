@@ -12,12 +12,15 @@ export default function StatsCards() {
           <CardContent className="flex flex-col items-center justify-center p-3 backdrop-filter backdrop-blur-sm">
             <div className="flex items-center gap-1 text-yellow-500">
               <span className="text-xl font-bold text-foreground">
-                {profile?.rating ? profile.rating.toFixed(1) : 'N/A'}
+                {profile?.rating != null ? profile.rating.toFixed(1) : 'N/A'}
               </span>
               <Star className="w-4 h-4 fill-current" />
             </div>
             <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
               Rating
+            </span>
+            <span className="text-[10px] text-muted-foreground">
+              {profile?.ratingVotes ?? 0} calificaciones
             </span>
           </CardContent>
         </Card>

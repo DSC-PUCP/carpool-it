@@ -20,6 +20,6 @@ export const useListRooms = (defaultFilters: Partial<RideListFilters>) => {
       TravelService.listRooms({ ...resolvedFilters, limit, offset: pageParam }),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.metadata.next,
-    staleTime: 1000 * 10,
+    staleTime: 1000 * 15,
   });
 };

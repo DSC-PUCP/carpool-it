@@ -70,12 +70,13 @@ function RootDocument({ children }: Readonly<PropsWithChildren>) {
           <Toaster position="top-right" />
         </ThemeProvider>
         <TanStackDevtools
+          config={{ position: 'top-left' }}
           plugins={[
-            ReactQueryDevtoolsPanel,
             {
               name: 'Tanstack Router',
               render: <TanStackRouterDevtoolsPanel />,
             },
+            ReactQueryDevtoolsPanel,
           ]}
         />
         <Scripts />

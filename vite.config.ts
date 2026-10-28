@@ -15,11 +15,7 @@ const config = defineConfig({
       },
     }),
     tanstackStart(),
-    viteReact({
-      babel: {
-        plugins: ["babel-plugin-react-compiler"],
-      },
-    }),
+    viteReact({ compiler: true}),
   ],
   resolve: {
     tsconfigPaths: true,

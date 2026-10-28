@@ -1,4 +1,4 @@
-import { Bookmark, Eye, EyeOff, Info } from 'lucide-react';
+import { CalendarSync, Eye, EyeOff, Info } from 'lucide-react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,11 +23,10 @@ const DAYS = [
   { key: 'SU', label: 'D' },
 ] as const;
 
-type Frequency = 'WEEKLY' | 'DAILY' | 'MONTHLY';
+type Frequency = 'WEEKLY' | 'DAILY';
 
 function buildRRULE(freq: Frequency, days: string[]): string {
   if (freq === 'DAILY') return 'RRULE:FREQ=DAILY';
-  if (freq === 'MONTHLY') return 'RRULE:FREQ=MONTHLY';
   const byDay = days.length > 0 ? days.join(',') : 'MO';
   return `RRULE:FREQ=WEEKLY;BYDAY=${byDay}`;
 }
@@ -50,7 +49,6 @@ export function parseRRULE(rule: string) {
   const freqMap: Record<string, string> = {
     DAILY: 'Diario',
     WEEKLY: 'Semanal',
-    MONTHLY: 'Mensual',
   };
 
   const freqLabel = freqMap[freq ?? ''] ?? freq ?? '';
@@ -77,7 +75,7 @@ export default function RecurrenceSelector() {
       .split(';')
       .find((p) => p.startsWith('FREQ='))
       ?.split('=')[1];
-    if (freq === 'DAILY' || freq === 'MONTHLY') return freq as Frequency;
+    if (freq === 'DAILY') return freq;
     return 'WEEKLY' as Frequency;
   })();
 
@@ -106,52 +104,77 @@ export default function RecurrenceSelector() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 my-3">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">Recurrente</span>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Info className="h-4 w-4" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Viaje Recurrente</DialogTitle>
-              <DialogDescription>
-                Un viaje recurrente se repite automáticamente según la
-                frecuencia que elijas. Los pasajeros podrán ver tus viajes
-                recurrentes en tu perfil y en el feed principal.
-              </DialogDescription>
-            </DialogHeader>
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Controller
+            control={control}
+            name="isRecurrent"
+            render={({ field }) => (
+              <Toggle
+                variant="outline"
+                size="sm"
+                pressed={field.value}
+                onPressedChange={(pressed) => {
+                  field.onChange(pressed);
+                  if (pressed && !recurrenceRule) {
+                    setValue(
+                      'recurrenceRule',
+                      'RRULE:FREQ=WEEKLY;BYDAY=MO,WE,FR'
+                    );
+                  }
+                  if (pressed) {
+                    setValue('isPrefilledRecurrent', false);
+                  }
+                }}
+                aria-label="Marcar como recurrente"
+              >
+                <CalendarSync /> Recurrente
+              </Toggle>
+            )}
+          />
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Info className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Viaje Recurrente</DialogTitle>
+                <DialogDescription>
+                  Un viaje recurrente se repite automáticamente según la
+                  frecuencia que elijas. Los pasajeros podrán ver tus viajes
+                  recurrentes en tu perfil y en el feed principal.
+                </DialogDescription>
+              </DialogHeader>
+            </DialogContent>
+          </Dialog>
+        </div>
+        <Controller
+          control={control}
+          name="isPrivate"
+          render={({ field }) => (
+            <Toggle
+              variant="outline"
+              size="sm"
+              pressed={field.value}
+              onPressedChange={field.onChange}
+              aria-label="Hacer viaje privado"
+            >
+              {field.value ? (
+                <>
+                  <EyeOff /> Privado
+                </>
+              ) : (
+                <>
+                  <Eye /> Publico{' '}
+                </>
+              )}
+            </Toggle>
+          )}
+        />
       </div>
-
-      <Controller
-        control={control}
-        name="isRecurrent"
-        render={({ field }) => (
-          <Toggle
-            variant="outline"
-            size="sm"
-            pressed={field.value}
-            onPressedChange={(pressed) => {
-              field.onChange(pressed);
-              if (pressed && !recurrenceRule) {
-                setValue('recurrenceRule', 'RRULE:FREQ=WEEKLY;BYDAY=MO,WE,FR');
-              }
-              if (pressed) {
-                setValue('isPrefilledRecurrent', false);
-              }
-            }}
-            aria-label="Marcar como recurrente"
-          >
-            <Bookmark className={field.value ? 'fill-foreground' : ''} />
-            Recurrente
-          </Toggle>
-        )}
-      />
 
       {isRecurrent && (
         <div className="space-y-3 rounded-lg border p-3">
@@ -163,7 +186,6 @@ export default function RecurrenceSelector() {
                 [
                   { key: 'DAILY', label: 'Diario' },
                   { key: 'WEEKLY', label: 'Semanal' },
-                  { key: 'MONTHLY', label: 'Mensual' },
                 ] as const
               ).map((freq) => (
                 <Button

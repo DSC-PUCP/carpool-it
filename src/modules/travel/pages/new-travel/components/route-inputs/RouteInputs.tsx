@@ -1,4 +1,3 @@
-import { ClientOnly } from '@tanstack/react-router';
 import { ArrowUpDown, MapPin, Star } from 'lucide-react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import Typography from '@/components/typography';
@@ -45,61 +44,7 @@ export default function RouteInputs() {
               <Label>
                 <Typography variant="muted">Saliendo de</Typography>
               </Label>
-              <ClientOnly>
-                <Controller
-                  control={form.control}
-                  name="origin"
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid}>
-                      <ButtonGroup>
-                        <MapSelector
-                          position={
-                            Object.keys(field.value ?? {}).length
-                              ? { lat: field.value.lat, lng: field.value.lon }
-                              : undefined
-                          }
-                          setPosition={({ lat, lng }) => {
-                            if (locations && locations.length === 0)
-                              form.setValue('newLocation', true);
-                            field.onChange({
-                              lat,
-                              lon: lng,
-                            });
-                          }}
-                        />
-                        {!originCampus && (
-                          <>
-                            <ButtonGroupSeparator />
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="outline"
-                              onClick={() => {
-                                if (destination) {
-                                  if (newLocation)
-                                    form.setValue('newLocation', false);
-                                  else form.setValue('newLocation', true);
-                                }
-                              }}
-                            >
-                              <Star
-                                className={
-                                  newLocation
-                                    ? 'text-yellow-400  fill-yellow-400'
-                                    : ''
-                                }
-                              />
-                            </Button>
-                          </>
-                        )}
-                      </ButtonGroup>
-                      {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
-                      )}
-                    </Field>
-                  )}
-                />
-              </ClientOnly>
+              <LocationField name="origin" showFavorite={!originCampus} />
             </div>
           </div>
 
@@ -128,65 +73,73 @@ export default function RouteInputs() {
               <Label>
                 <Typography variant="muted">Con destino a</Typography>
               </Label>
-              <ClientOnly>
-                <Controller
-                  control={form.control}
-                  name="destination"
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid}>
-                      <ButtonGroup>
-                        <MapSelector
-                          position={
-                            Object.keys(field.value ?? {}).length
-                              ? { lat: field.value.lat, lng: field.value.lon }
-                              : undefined
-                          }
-                          setPosition={({ lat, lng }) => {
-                            if (locations && locations.length === 0)
-                              form.setValue('newLocation', true);
-                            field.onChange({
-                              lat,
-                              lon: lng,
-                            });
-                          }}
-                        />
-                        {originCampus && (
-                          <>
-                            <ButtonGroupSeparator />
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="outline"
-                              onClick={() => {
-                                if (origin) {
-                                  if (newLocation)
-                                    form.setValue('newLocation', false);
-                                  else form.setValue('newLocation', true);
-                                }
-                              }}
-                            >
-                              <Star
-                                className={
-                                  newLocation
-                                    ? 'text-yellow-400  fill-yellow-400'
-                                    : ''
-                                }
-                              />
-                            </Button>
-                          </>
-                        )}
-                      </ButtonGroup>{' '}
-                      {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
-                      )}
-                    </Field>
-                  )}
-                />
-              </ClientOnly>
+              <LocationField name="destination" showFavorite={originCampus} />
             </div>
           </div>
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function LocationField({
+  name,
+  showFavorite,
+}: {
+  name: 'origin' | 'destination';
+  showFavorite: boolean | undefined;
+}) {
+  const form = useFormContext<FormSchema>();
+  const { data: locations } = useLocations();
+  const { destination, origin, newLocation } = useWatch({
+    control: form.control,
+  });
+  const canToggleFavorite = name === 'origin' ? destination : origin;
+
+  return (
+    <Controller
+      control={form.control}
+      name={name}
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid}>
+          <ButtonGroup>
+            <MapSelector
+              position={
+                Object.keys(field.value ?? {}).length
+                  ? { lat: field.value.lat, lng: field.value.lon }
+                  : undefined
+              }
+              setPosition={({ lat, lng }) => {
+                if (locations && locations.length === 0)
+                  form.setValue('newLocation', true);
+                field.onChange({ lat, lon: lng });
+              }}
+            />
+            {showFavorite && (
+              <>
+                <ButtonGroupSeparator />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  onClick={() => {
+                    if (canToggleFavorite) {
+                      form.setValue('newLocation', !newLocation);
+                    }
+                  }}
+                >
+                  <Star
+                    className={
+                      newLocation ? 'text-yellow-400 fill-yellow-400' : ''
+                    }
+                  />
+                </Button>
+              </>
+            )}
+          </ButtonGroup>
+          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+        </Field>
+      )}
+    />
   );
 }

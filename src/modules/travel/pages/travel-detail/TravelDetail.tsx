@@ -157,19 +157,12 @@ export default function TravelDetail() {
 
     const newOwnerId = getOwnerTransferCandidate(travel, user.id, isOwner);
 
-    leaveRide(
-      {
-        roomId: travel.id,
-        userId: user.id,
-        newOwnerId,
-        onlyOne: travel.stops.length === 1,
-      },
-      {
-        onSuccess: () => {
-          navigate({ to: '/home' });
-        },
-      }
-    );
+    leaveRide({
+      roomId: travel.id,
+      userId: user.id,
+      newOwnerId,
+      onlyOne: travel.stops.length === 1,
+    });
   };
 
   const isLoading = isJoining || isLeaving;

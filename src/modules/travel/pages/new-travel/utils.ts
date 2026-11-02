@@ -23,11 +23,18 @@ export function parseGoogleMapsUrl(
 export const getDefaultDate = (from: Date = new Date()): Date => {
   const now = new Date(from);
 
-  if (now.getHours() >= 23) {
+  const hour = now.getHours();
+
+  if (hour >= 23) {
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(7, 0, 0, 0);
     return tomorrow;
+  }
+
+  if (hour < 7) {
+    now.setHours(7, 0, 0, 0);
+    return now;
   }
 
   const minutes = now.getMinutes();

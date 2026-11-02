@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { fromZonedTime } from 'date-fns-tz';
 import { ArrowLeft } from 'lucide-react';
 import {
   TopStack,
@@ -6,7 +7,7 @@ import {
   TopStackTitle,
 } from '@/components/layout/top-stack/TopStack';
 import { QueryKeys } from '@/const/query-keys';
-import { getDirectionByHour, getNowInLima } from '@/lib/utils';
+import { getDirectionByHour, getNowInLima, LIMA_TIME_ZONE } from '@/lib/utils';
 import { ProfileService } from '@/modules/profile/services';
 import NewTravel from '@/modules/travel/pages/new-travel/NewTravel';
 import { getDefaultDate } from '@/modules/travel/pages/new-travel/utils';
@@ -21,7 +22,7 @@ export const Route = createFileRoute('/_layout/_auth/travel/new')({
 
     const nowInLima = getNowInLima();
     return {
-      defaultDate: getDefaultDate(nowInLima),
+      defaultDate: fromZonedTime(getDefaultDate(nowInLima), LIMA_TIME_ZONE),
       defaultDirection: getDirectionByHour(nowInLima.getHours()),
     };
   },

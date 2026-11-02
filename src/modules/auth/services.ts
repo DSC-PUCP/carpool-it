@@ -1,13 +1,12 @@
 import { redirect } from '@tanstack/react-router';
-import { env } from '@/env';
 import getSupabaseClient from '@/lib/supabase';
 import type { FileRoutesByTo } from '@/routeTree.gen';
 
 export namespace AuthService {
   export const login = async (next: keyof FileRoutesByTo | string = '/') => {
-    const redirectTo = `${env.VITE_SERVER_URL}/api/auth/callback?next=${encodeURIComponent(
-      next
-    )}`;
+    const redirectUrl = new URL('/api/auth/callback', window.location.origin);
+    redirectUrl.searchParams.set('next', next);
+    const redirectTo = redirectUrl.toString();
     const { error } = await getSupabaseClient().auth.signInWithOAuth({
       provider: 'google',
       options: {

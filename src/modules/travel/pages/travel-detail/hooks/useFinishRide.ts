@@ -9,14 +9,16 @@ export const useFinishRide = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: TravelService.finishTravel,
-    onSuccess: (_, variables) => {
+    onSuccess: async (_, variables) => {
       toast.success('Has finalizado el viaje exitosamente');
       queryClient.invalidateQueries({
         queryKey: [QueryKeys.TRAVEL_DETAIL, variables.roomId],
       });
-      queryClient.invalidateQueries({ queryKey: [QueryKeys.TRAVEL] });
-      queryClient.invalidateQueries({ queryKey: [QueryKeys.ACTIVE_RIDE] });
       navigate({ to: '/home' });
+      await queryClient.invalidateQueries({ queryKey: [QueryKeys.TRAVEL] });
+      await queryClient.invalidateQueries({
+        queryKey: [QueryKeys.ACTIVE_RIDE],
+      });
     },
     onError: (error) => {
       toast.error(error.message);

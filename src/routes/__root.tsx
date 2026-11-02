@@ -67,7 +67,7 @@ function RootDocument({ children }: Readonly<PropsWithChildren>) {
         >
           {children}
           <PushNotificationsBootstrap />
-          <Toaster position="top-right" />
+          <Toaster position="bottom-left" />
         </ThemeProvider>
         <TanStackDevtools
           config={{ position: 'top-left' }}

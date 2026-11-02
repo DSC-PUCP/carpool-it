@@ -234,16 +234,38 @@ END;$$;
 -- Name: rate_driver(uuid, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
+CREATE FUNCTION public.get_driver_rating(p_driver uuid)
+RETURNS TABLE(rating numeric, votes bigint)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path = public
+    AS $$
+  SELECT d.rating, d.votes
+  FROM public.driver d
+  WHERE d.id = p_driver;
+$$;
+
 CREATE FUNCTION public.rate_driver(p_driver uuid, p_rate integer) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
-    AS $$BEGIN
+    SET search_path = public
+    AS $$
+BEGIN
+  IF p_rate IS NULL OR p_rate < 1 OR p_rate > 5 THEN
+    RAISE EXCEPTION 'La calificación debe estar entre 1 y 5.';
+  END IF;
+
   UPDATE public.driver
-  SET 
-      rating = ((COALESCE(rating, 0) * COALESCE(votes, 0)) + p_rate) /
-        (COALESCE(votes, 0) + 1),
-      votes = COALESCE(votes, 0) + 1
+  SET
+    rating = (
+      (COALESCE(rating, 0)::numeric * votes + p_rate)::numeric / (votes + 1)
+    )::numeric(3,2),
+    votes = votes + 1
   WHERE id = p_driver;
-END;$$;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'No se encontró el conductor para calificar.';
+  END IF;
+END;
+$$;
 
 
 --
@@ -1236,6 +1258,8 @@ CREATE TABLE public.travel_room_message (
     room_id uuid NOT NULL REFERENCES public.travel_room(id) ON DELETE CASCADE,
     user_id uuid DEFAULT auth.uid() NOT NULL REFERENCES public.profile(id),
     content text NOT NULL,
+    image_url text,
+    reply_to_id uuid REFERENCES public.travel_room_message(id) ON DELETE SET NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT travel_room_message_content_check CHECK ((char_length(content) >= 1) AND (char_length(content) <= 2000)),
     CONSTRAINT travel_room_message_pkey PRIMARY KEY (id)
@@ -1272,6 +1296,8 @@ BEGIN
       'user_id', NEW.user_id,
       'tag', (SELECT p.tag FROM public.profile p WHERE p.id = NEW.user_id),
       'content', NEW.content,
+      'image_url', NEW.image_url,
+      'reply_to_id', NEW.reply_to_id,
       'created_at', NEW.created_at
     ),
     'message_created',
@@ -1306,6 +1332,31 @@ CREATE POLICY "members receive room broadcasts" ON realtime.messages
         (split_part((SELECT realtime.topic()), ':', 2))::uuid
       )
     );
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('chat', 'chat', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+CREATE POLICY "chat members can read images" ON storage.objects
+FOR SELECT TO authenticated
+USING (
+  bucket_id = 'chat'
+  AND public.is_room_member((storage.foldername(name))[1]::uuid)
+);
+
+CREATE POLICY "chat members can upload images" ON storage.objects
+FOR INSERT TO authenticated
+WITH CHECK (
+  bucket_id = 'chat'
+  AND public.is_room_member((storage.foldername(name))[1]::uuid)
+);
+
+CREATE POLICY "chat members can delete images" ON storage.objects
+FOR DELETE TO authenticated
+USING (
+  bucket_id = 'chat'
+  AND public.is_room_member((storage.foldername(name))[1]::uuid)
+);
 
     ALTER TABLE public.profile
       ADD CONSTRAINT profile_tag_length_check
@@ -1352,4 +1403,3 @@ select cron.schedule(
     WHERE datetime < NOW() - INTERVAL '6 hours';
   $job$
 );
-

@@ -1,6 +1,7 @@
 import type { TravelRepository } from '@/core/interfaces';
 import getSupabaseClient from '@/lib/supabase';
 import { Result } from '@/lib/utils';
+import { bucketRepository } from '../bucket';
 import { TravelMappers } from './mappers';
 
 export const travelRepository: TravelRepository = {
@@ -100,6 +101,10 @@ export const travelRepository: TravelRepository = {
 
   deleteRoom: async (roomId) => {
     const supabase = getSupabaseClient();
+    const cleanupResult = await bucketRepository.deleteChatRoomFiles(roomId);
+    if (cleanupResult.isFailure())
+      return Result.error(cleanupResult.getError());
+
     const { error } = await supabase
       .from('travel_room')
       .delete()
@@ -132,13 +137,56 @@ export const travelRepository: TravelRepository = {
   },
   joinRoom: async (params) => {
     const supabase = getSupabaseClient();
+    let seats = params.seats;
+
+    if (params.userRole === 'driver') {
+      const { data: existingStops, error: stopsError } = await supabase
+        .from('travel_room_stop')
+        .select('user_role')
+        .eq('room_id', params.roomId);
+
+      if (stopsError) return Result.error(stopsError);
+
+      const isAcceptingPassengerRequest =
+        existingStops.length > 0 &&
+        existingStops.every((stop) => stop.user_role === 'passenger');
+
+      if (!isAcceptingPassengerRequest) {
+        const { error } = await supabase.from('travel_room_stop').insert({
+          room_id: params.roomId,
+          user_id: params.userId,
+          user_role: params.userRole,
+          stop_coords: `POINT(${params.stopCoords.lon} ${params.stopCoords.lat})`,
+          price: params.price,
+          seats,
+        });
+
+        if (error) return Result.error(error);
+        return Result.success();
+      }
+
+      const { data: vehicle, error: vehicleError } = await supabase
+        .from('driver')
+        .select('seats')
+        .eq('id', params.userId)
+        .single();
+
+      if (vehicleError) return Result.error(vehicleError);
+      if (!vehicle?.seats) {
+        return Result.error(
+          new Error('No se encontró la capacidad del vehículo del conductor.')
+        );
+      }
+      seats = vehicle.seats;
+    }
+
     const { error } = await supabase.from('travel_room_stop').insert({
       room_id: params.roomId,
       user_id: params.userId,
       user_role: params.userRole,
       stop_coords: `POINT(${params.stopCoords.lon} ${params.stopCoords.lat})`,
       price: params.price,
-      seats: params.seats,
+      seats,
     });
 
     if (error) return Result.error(error);

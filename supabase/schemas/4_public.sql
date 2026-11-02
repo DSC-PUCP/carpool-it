@@ -348,12 +348,18 @@ CREATE TABLE public.travel_room_message (
     room_id uuid NOT NULL,
     user_id uuid DEFAULT auth.uid() NOT NULL,
     content text NOT NULL,
+    image_url text,
+    reply_to_id uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT travel_room_message_content_check CHECK ((char_length(content) >= 1) AND (char_length(content) <= 2000)),
     CONSTRAINT travel_room_message_pkey PRIMARY KEY (id),
     CONSTRAINT travel_room_message_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.travel_room(id) ON DELETE CASCADE,
     CONSTRAINT travel_room_message_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profile(id)
 );
+
+ALTER TABLE public.travel_room_message
+    ADD CONSTRAINT travel_room_message_reply_to_id_fkey
+    FOREIGN KEY (reply_to_id) REFERENCES public.travel_room_message(id) ON DELETE SET NULL;
 
 CREATE INDEX travel_room_message_room_id_created_at_idx
     ON public.travel_room_message USING btree (room_id, created_at);
@@ -390,5 +396,4 @@ ALTER TABLE public.recurrent_travel
     CHECK (seats BETWEEN 1 AND 8),
     ADD CONSTRAINT recurrent_travel_price_nonnegative_check
     CHECK (price >= 0);
-
 

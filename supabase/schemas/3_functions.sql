@@ -65,6 +65,8 @@ BEGIN
       'user_id', NEW.user_id,
       'tag', (SELECT p.tag FROM public.profile p WHERE p.id = NEW.user_id),
       'content', NEW.content,
+      'image_url', NEW.image_url,
+      'reply_to_id', NEW.reply_to_id,
       'created_at', NEW.created_at
     ),
     'message_created',
@@ -591,4 +593,3 @@ begin
   );
 end;
 $$;
-

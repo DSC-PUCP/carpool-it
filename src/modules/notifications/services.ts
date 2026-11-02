@@ -44,7 +44,7 @@ export namespace PushNotificationsService {
     if (typeof window === 'undefined') return null;
     if (!('serviceWorker' in navigator)) return null;
 
-    return navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    return await navigator.serviceWorker.register('/firebase-messaging-sw.js');
   };
 
   export const requestPermission =

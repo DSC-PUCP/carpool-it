@@ -409,6 +409,10 @@ export type Database = {
           user_tag: string;
         }[];
       };
+      get_push_webhook_secret: {
+        Args: never;
+        Returns: string;
+      };
       get_travel_room_detail: {
         Args: { p_id: string };
         Returns: {
@@ -446,6 +450,10 @@ export type Database = {
         Args: { p_driver: string; p_rate: number };
         Returns: undefined;
       };
+      register_push_token: {
+        Args: { p_platform?: string; p_token: string };
+        Returns: undefined;
+      };
       search_travel_rooms: {
         Args: {
           p_date?: string;
@@ -465,6 +473,10 @@ export type Database = {
           p_offset?: number;
         };
         Returns: Json;
+      };
+      unregister_push_token: {
+        Args: { p_token: string };
+        Returns: undefined;
       };
       update_travel_room_settings: {
         Args: { p_active: boolean; p_allow: boolean; p_room_id: string };

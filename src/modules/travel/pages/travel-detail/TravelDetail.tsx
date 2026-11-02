@@ -20,6 +20,7 @@ import { QueryKeys } from '@/const/query-keys';
 import { useLocations } from '@/hooks/use-locations';
 import { useProfile } from '@/hooks/use-profile';
 import { AuthService } from '@/modules/auth/services';
+import NotificationsPromptBanner from '@/modules/notifications/components/NotificationsPromptBanner';
 import { ProfileService } from '@/modules/profile/services';
 import { TravelService } from '@/modules/travel/services';
 import RideCard from '../../components/ride-card/RideCard';
@@ -209,6 +210,8 @@ export default function TravelDetail() {
             }
           />
         </div>
+
+        {isMember && <NotificationsPromptBanner />}
 
         <DriverRoleDialog
           open={isDriverRoleDialogOpen}

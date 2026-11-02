@@ -1,5 +1,6 @@
 import { redirect } from '@tanstack/react-router';
 import getSupabaseClient from '@/lib/supabase';
+import { PushNotificationsService } from '@/modules/notifications/services';
 import type { FileRoutesByTo } from '@/routeTree.gen';
 
 export namespace AuthService {
@@ -42,6 +43,13 @@ export namespace AuthService {
   };
 
   export const logout = async () => {
+    try {
+      await PushNotificationsService.unregister();
+    } catch (error) {
+      // Deactivating the device token must never block sign out.
+      console.error('No se pudo desactivar el token de notificaciones:', error);
+    }
+
     await getSupabaseClient().auth.signOut();
   };
 

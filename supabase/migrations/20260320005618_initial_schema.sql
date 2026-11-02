@@ -1,6 +1,7 @@
 create schema if not exists extensions;
 create extension if not exists "postgis" schema extensions;
 create extension if not exists "pg_cron";
+create extension if not exists pg_net with schema extensions;
 
 CREATE SCHEMA IF NOT EXISTS public;
 
@@ -1153,10 +1154,11 @@ CREATE POLICY "Enable update for users based on user_id" ON public.travel_room_s
 
 --
 -- TOC entry 5155 (class 3256 OID 95564)
--- Name: push_device_token Users can manage own push tokens; Type: POLICY; Schema: public; Owner: -
+-- Name: push_device_token Users can read own push tokens; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Users can manage own push tokens" ON public.push_device_token TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id)) WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+-- Writes go through public.register_push_token / public.unregister_push_token.
+CREATE POLICY "Users can read own push tokens" ON public.push_device_token FOR SELECT TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
 
 
 --
@@ -1401,5 +1403,185 @@ select cron.schedule(
   $job$
     DELETE FROM public.travel_room
     WHERE datetime < NOW() - INTERVAL '6 hours';
+  $job$
+);
+
+--
+-- Push notifications: token registration RPCs and the trigger that calls the
+-- push-notifications edge function through pg_net.
+--
+
+CREATE FUNCTION public.register_push_token(p_token text, p_platform text DEFAULT NULL::text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'No autenticado' USING ERRCODE = '42501';
+  END IF;
+
+  IF p_token IS NULL OR length(btrim(p_token)) < 20 OR length(p_token) > 4096 THEN
+    RAISE EXCEPTION 'Token de dispositivo inválido' USING ERRCODE = '22023';
+  END IF;
+
+  INSERT INTO public.push_device_token (user_id, token, platform, active, updated_at)
+  VALUES (v_user_id, p_token, nullif(btrim(p_platform), ''), true, now())
+  ON CONFLICT (token) DO UPDATE
+    SET user_id = excluded.user_id,
+        platform = excluded.platform,
+        active = true,
+        updated_at = now();
+
+  -- Keep at most the five most recent tokens active for this user.
+  UPDATE public.push_device_token p
+  SET active = false
+  WHERE p.user_id = v_user_id
+    AND p.active
+    AND p.id NOT IN (
+      SELECT t.id
+      FROM public.push_device_token t
+      WHERE t.user_id = v_user_id
+      ORDER BY t.updated_at DESC, t.id DESC
+      LIMIT 5
+    );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.register_push_token(text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.register_push_token(text, text) TO authenticated;
+
+
+CREATE FUNCTION public.unregister_push_token(p_token text) RETURNS void
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  UPDATE public.push_device_token
+  SET active = false
+  WHERE token = p_token
+    AND user_id = auth.uid();
+$$;
+
+REVOKE ALL ON FUNCTION public.unregister_push_token(text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.unregister_push_token(text) TO authenticated;
+
+
+CREATE FUNCTION public.get_push_webhook_secret() RETURNS text
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  SELECT decrypted_secret
+  FROM vault.decrypted_secrets
+  WHERE name = 'push_webhook_secret'
+  LIMIT 1;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_push_webhook_secret() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_push_webhook_secret() TO service_role;
+
+
+CREATE FUNCTION public.notify_push_event() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+DECLARE
+  v_url text;
+  v_secret text;
+  v_body jsonb;
+BEGIN
+  BEGIN
+    IF TG_TABLE_NAME = 'travel_room_stop' THEN
+      IF TG_OP = 'INSERT' THEN
+        v_body := jsonb_build_object(
+          'type', 'join_room',
+          'room_id', NEW.room_id,
+          'actor_user_id', NEW.user_id
+        );
+      ELSIF TG_OP = 'DELETE' THEN
+        -- Cascade deletes from travel_room must not look like a member leaving.
+        IF NOT EXISTS (
+          SELECT 1 FROM public.travel_room WHERE id = OLD.room_id
+        ) THEN
+          RETURN NULL;
+        END IF;
+
+        v_body := jsonb_build_object(
+          'type', 'leave_room',
+          'room_id', OLD.room_id,
+          'actor_user_id', OLD.user_id
+        );
+      END IF;
+    ELSIF TG_TABLE_NAME = 'travel_room_message' AND TG_OP = 'INSERT' THEN
+      v_body := jsonb_build_object(
+        'type', 'chat_message',
+        'room_id', NEW.room_id,
+        'actor_user_id', NEW.user_id,
+        'message_id', NEW.id
+      );
+    ELSIF TG_TABLE_NAME = 'travel_room' AND TG_OP = 'UPDATE' THEN
+      v_body := jsonb_build_object(
+        'type', 'next_stop',
+        'room_id', NEW.id,
+        'actor_user_id', auth.uid(),
+        'current_stop', NEW.current_stop
+      );
+    END IF;
+
+    IF v_body IS NULL THEN
+      RETURN NULL;
+    END IF;
+
+    SELECT decrypted_secret INTO v_url
+    FROM vault.decrypted_secrets
+    WHERE name = 'push_function_url'
+    LIMIT 1;
+
+    SELECT decrypted_secret INTO v_secret
+    FROM vault.decrypted_secrets
+    WHERE name = 'push_webhook_secret'
+    LIMIT 1;
+
+    IF v_url IS NULL OR v_secret IS NULL THEN
+      RETURN NULL;
+    END IF;
+
+    PERFORM net.http_post(
+      url := v_url,
+      body := v_body,
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'x-webhook-secret', v_secret
+      )
+    );
+  EXCEPTION WHEN others THEN
+    -- Notifications must never roll back the user's transaction.
+    RAISE WARNING 'notify_push_event: %', SQLERRM;
+  END;
+
+  RETURN NULL;
+END;
+$$;
+
+
+CREATE TRIGGER trg_push_join_room AFTER INSERT ON public.travel_room_stop FOR EACH ROW EXECUTE FUNCTION public.notify_push_event();
+
+CREATE TRIGGER trg_push_leave_room AFTER DELETE ON public.travel_room_stop FOR EACH ROW EXECUTE FUNCTION public.notify_push_event();
+
+CREATE TRIGGER trg_push_chat_message AFTER INSERT ON public.travel_room_message FOR EACH ROW EXECUTE FUNCTION public.notify_push_event();
+
+CREATE TRIGGER trg_push_next_stop AFTER UPDATE OF current_stop ON public.travel_room FOR EACH ROW WHEN (old.current_stop IS DISTINCT FROM new.current_stop) EXECUTE FUNCTION public.notify_push_event();
+
+select cron.unschedule(jobid)
+from cron.job
+where jobname = 'Clean push tokens';
+
+select cron.schedule(
+  'Clean push tokens',
+  '0 4 * * 0',
+  $job$
+    DELETE FROM public.push_device_token
+    WHERE (active = false AND updated_at < NOW() - INTERVAL '30 days')
+       OR updated_at < NOW() - INTERVAL '60 days';
   $job$
 );

@@ -1,27 +1,39 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
-import { useEffect, useEffectEvent } from 'react';
+import { useEffect, useEffectEvent, useRef } from 'react';
 import { toast } from 'sonner';
 import { QueryKeys } from '@/const/query-keys';
 import { PushNotificationsService } from '@/modules/notifications/services';
 
+type ForegroundPayload = {
+  notification?: {
+    title?: string;
+    body?: string;
+  };
+  data?: {
+    title?: string;
+    body?: string;
+    type?: string;
+    room_id?: string;
+  };
+};
+
 export default function PushNotificationsBootstrap() {
   const { user } = useRouteContext({ from: '__root__' });
   const queryClient = useQueryClient();
+  const registrationErrorShown = useRef(false);
+
+  const showRegistrationError = useEffectEvent(() => {
+    if (registrationErrorShown.current) return;
+
+    registrationErrorShown.current = true;
+    toast.error(
+      'No se pudieron activar las notificaciones en este dispositivo.'
+    );
+  });
 
   const handleForegroundMessage = useEffectEvent(
-    (payload: {
-      notification?: {
-        title?: string;
-        body?: string;
-      };
-      data?: {
-        title?: string;
-        body?: string;
-        type?: string;
-        room_id?: string;
-      };
-    }) => {
+    (payload: ForegroundPayload) => {
       const title = payload.notification?.title || payload.data?.title;
       const body = payload.notification?.body || payload.data?.body;
       const type = payload.data?.type;
@@ -33,7 +45,12 @@ export default function PushNotificationsBootstrap() {
         description: body,
       });
 
-      if ((type === 'join_room' || type === 'leave_room') && roomId) {
+      if (
+        (type === 'join_room' ||
+          type === 'leave_room' ||
+          type === 'next_stop') &&
+        roomId
+      ) {
         void queryClient.invalidateQueries({
           queryKey: [QueryKeys.TRAVEL_DETAIL, roomId],
         });
@@ -42,21 +59,35 @@ export default function PushNotificationsBootstrap() {
   );
 
   useEffect(() => {
-    void PushNotificationsService.registerServiceWorker();
+    void PushNotificationsService.registerServiceWorker().catch(() => {
+      showRegistrationError();
+    });
 
-    const unsubscribe = PushNotificationsService.onForegroundMessage(
-      (payload) => handleForegroundMessage(payload)
+    return PushNotificationsService.onForegroundMessage((payload) =>
+      handleForegroundMessage(payload)
     );
-
-    return unsubscribe;
   }, []);
 
   useEffect(() => {
     if (!user?.id) return;
 
-    void PushNotificationsService.syncDeviceToken().catch((error) => {
-      console.error('Error al obtener el token de notificaciones:', error);
-    });
+    const runSync = () => {
+      void PushNotificationsService.sync({ silent: true }).catch(() => {
+        showRegistrationError();
+      });
+    };
+
+    runSync();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') runSync();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user?.id]);
 
   return null;

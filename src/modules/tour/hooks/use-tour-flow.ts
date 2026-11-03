@@ -85,8 +85,8 @@ export function useTourFlow(
   const startFlow = useCallback(() => {
     markSeen();
     setIsTourCompleted(false);
-    startTour();
-  }, [markSeen, setIsTourCompleted, startTour]);
+    startTour([...flow.steps]);
+  }, [flow, markSeen, setIsTourCompleted, startTour]);
 
   const skipFlow = useCallback(() => {
     markSeen();

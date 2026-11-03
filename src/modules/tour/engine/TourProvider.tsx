@@ -33,7 +33,8 @@ type TourContextValue = {
   previousStep: () => void;
   endTour: () => void;
   isActive: boolean;
-  startTour: () => void;
+  /** Starts the tour, optionally replacing the loaded steps in the same tick. */
+  startTour: (steps?: TourStep[]) => void;
   setSteps: (steps: TourStep[]) => void;
   steps: TourStep[];
   isTourCompleted: boolean;
@@ -299,9 +300,16 @@ export function TourProvider({
     setCurrentStep(-1);
   }, []);
 
-  const startTour = useCallback(() => {
-    if (stepsRef.current.length === 0) {
+  const startTour = useCallback((nextSteps?: TourStep[]) => {
+    const resolvedSteps = nextSteps ?? stepsRef.current;
+    if (resolvedSteps.length === 0) {
       return;
+    }
+
+    if (nextSteps) {
+      // Keep the ref in sync so the same tick sees the new flow.
+      stepsRef.current = nextSteps;
+      setSteps(nextSteps);
     }
 
     setCurrentStep(0);

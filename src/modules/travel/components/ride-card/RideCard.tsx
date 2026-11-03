@@ -2,6 +2,7 @@ import { Link, useRouteContext } from '@tanstack/react-router';
 import { es } from 'date-fns/locale';
 import { formatInTimeZone } from 'date-fns-tz';
 import { Armchair, CarTaxiFront, Info, MapPinned, Star } from 'lucide-react';
+import type { ReactNode } from 'react';
 import {
   Avatar,
   AvatarFallback,
@@ -35,10 +36,23 @@ import {
 } from '../../utils';
 
 export default function RideCard(
-  props: Omit<TravelRoom, 'currentStop'> & { hideActions?: boolean }
+  props: Omit<TravelRoom, 'currentStop'> & {
+    hideActions?: boolean;
+    hideRouteInfo?: boolean;
+    settingsControl?: ReactNode;
+  }
 ) {
   const { user } = useRouteContext({ from: '__root__' });
-  const { id, direction, datetime, driver, stops, hideActions } = props;
+  const {
+    id,
+    direction,
+    datetime,
+    driver,
+    stops,
+    hideActions,
+    hideRouteInfo,
+    settingsControl,
+  } = props;
 
   const isToCampus = direction === 'to_campus';
 
@@ -63,7 +77,7 @@ export default function RideCard(
   const originLabel = isToCampus ? relevantLabel : universityLabel;
   const destinationLabel = isToCampus ? universityLabel : relevantLabel;
 
-  const totalSeats = driver?.seats ?? 0;
+  const totalSeats = driverStop?.seats ?? driver?.seats ?? 0;
   const occupiedSeats = stops.reduce((acc, stop) => {
     return stop.userRole === 'passenger' ? acc + stop.seats : acc;
   }, 0);
@@ -95,8 +109,8 @@ export default function RideCard(
 
   const driverName = driver?.userTag ?? 'Taxi';
   const driverInitial = driverName.charAt(0).toUpperCase();
-  const driverRating = driver?.rating ?? 0;
-  const driverRides = driver?.rides ?? 0;
+  const driverRating = driver?.rating;
+  const driverVotes = driver?.votes ?? 0;
   const carInfo = driver
     ? `***-${driver.plate} • ${driver.color}`
     : 'Vehículo externo';
@@ -235,12 +249,18 @@ export default function RideCard(
         <div className="flex items-stretch justify-between">
           <div className="flex flex-col  md:flex-row md:items-center gap-3 flex-1">
             <div className="flex items-center gap-3">
-              <Avatar className="h-9 w-9 border border-border">
-                {driver && <AvatarImage src={driver.userAvatar} />}
-                <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-                  {driver ? driverInitial : <CarTaxiFront size={16} />}
-                </AvatarFallback>
-              </Avatar>
+              <Link
+                to="/u/$usertag"
+                params={{ usertag: driverName }}
+                className="shrink-0"
+              >
+                <Avatar className="h-9 w-9 border border-border">
+                  {driver && <AvatarImage src={driver.userAvatar} />}
+                  <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                    {driver ? driverInitial : <CarTaxiFront size={16} />}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
               <div className="flex flex-col">
                 <p className="text-sm font-semibold leading-none">
                   {driverName}
@@ -255,10 +275,16 @@ export default function RideCard(
                   <div className="flex items-center gap-1 mt-0.5">
                     <Star
                       size={10}
-                      className="text-yellow-400 fill-yellow-400"
+                      className={
+                        driverVotes > 0
+                          ? 'text-yellow-400 fill-yellow-400'
+                          : 'text-muted-foreground'
+                      }
                     />
                     <span className="text-[10px] text-muted-foreground">
-                      {driverRating.toFixed(1)} ({driverRides})
+                      {driverVotes > 0 && driverRating != null
+                        ? `${driverRating.toFixed(1)} (${driverVotes})`
+                        : 'Sin calificaciones'}
                     </span>
                   </div>
                 )}
@@ -286,37 +312,51 @@ export default function RideCard(
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
-                        <DropdownMenuItem>{stop.userTag}</DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link
+                            to="/u/$usertag"
+                            params={{ usertag: stop.userTag }}
+                          >
+                            {stop.userTag}
+                          </Link>
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   ))}
               </AvatarGroup>
             </div>
           </div>
-          <div className="flex flex-col md:flex-row justify-start gap-2">
-            {routeDescription && (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button size="icon" variant="outline" className="h-8 w-8">
-                    <Info />
-                    <span className="sr-only">Ver descripción de ruta</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Descripción de la ruta</DialogTitle>
-                    <DialogDescription>{routeDescription}</DialogDescription>
-                  </DialogHeader>
-                </DialogContent>
-              </Dialog>
-            )}
-            <Button size="sm" variant="ghost" className="text-xs" asChild>
-              <a href={googleMapsUrl} target="_blank" rel="noreferrer">
-                <MapPinned /> Ver Ruta
-              </a>
-            </Button>
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-row justify-start gap-2">
+              {routeDescription && !hideRouteInfo && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button size="icon" variant="outline" className="h-8 w-8">
+                      <Info />
+                      <span className="sr-only">Ver descripción de ruta</span>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Descripción de la ruta</DialogTitle>
+                      <DialogDescription>{routeDescription}</DialogDescription>
+                    </DialogHeader>
+                  </DialogContent>
+                </Dialog>
+              )}
+              {settingsControl}
+              <Button size="sm" variant="ghost" className="text-xs" asChild>
+                <a href={googleMapsUrl} target="_blank" rel="noreferrer">
+                  <MapPinned /> Ver Ruta
+                </a>
+              </Button>
+            </div>
             {!hideActions && (
-              <Button asChild size="sm" className="h-8 text-xs font-medium">
+              <Button
+                asChild
+                size="sm"
+                className="h-8 text-xs font-medium w-full"
+              >
                 <Link
                   to="/travel/$id"
                   params={{

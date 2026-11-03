@@ -1,93 +1,107 @@
-// Firebase Messaging Service Worker
-importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
+// Firebase Messaging Service Worker.
+// Keep FIREBASE_VERSION in sync with the `firebase` dependency in package.json.
+const FIREBASE_VERSION = '12.19.0';
+const DEFAULT_ICON = '/logo192.png';
 
+importScripts(
+  `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-app-compat.js`
+);
+importScripts(
+  `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-messaging-compat.js`
+);
+
+// The client registers this worker as
+// /firebase-messaging-sw.js?apiKey=...&authDomain=...&projectId=...
+const params = new URL(self.location).searchParams;
 const firebaseConfig = {
-  apiKey: 'AIzaSyCUcmF8yBbf_BZkasFYU6-j7tpvWjZqPfw',
-  authDomain: 'carpool-it-80e09.firebaseapp.com',
-  projectId: 'carpool-it-80e09',
-  storageBucket: 'carpool-it-80e09.firebasestorage.app',
-  messagingSenderId: '872110314054',
-  appId: '1:872110314054:web:1f26cdc335b08e5d40b047',
+  apiKey: params.get('apiKey') || undefined,
+  authDomain: params.get('authDomain') || undefined,
+  projectId: params.get('projectId') || undefined,
+  storageBucket: params.get('storageBucket') || undefined,
+  messagingSenderId: params.get('messagingSenderId') || undefined,
+  appId: params.get('appId') || undefined,
 };
 
-const app = firebase.initializeApp(firebaseConfig);
-
-const messaging = firebase.messaging(app);
+function resolveUrl(value) {
+  try {
+    const url = new URL(value || '/', self.location.origin);
+    return url.origin === self.location.origin ? url.href : null;
+  } catch {
+    return null;
+  }
+}
 
 function resolveNotificationUrl(data) {
-  if (data?.url) return data.url;
-  if (data?.link) return data.link;
-  if (data?.room_id) return `/travel/${data.room_id}`;
-  return '/';
+  if (data && typeof data.url === 'string') {
+    const resolved = resolveUrl(data.url);
+    if (resolved) return resolved;
+  }
+
+  if (data && typeof data.room_id === 'string' && data.room_id.length > 0) {
+    return resolveUrl(`/travel/${data.room_id}`) || self.location.origin;
+  }
+
+  return self.location.origin;
 }
 
-function buildNotificationOptions(payload) {
-  const notification = payload.notification || {};
-  const payloadData = payload.data || {};
-  const data = {
-    ...payloadData,
-    url:
-      payloadData.url ||
-      payload.fcmOptions?.link ||
-      resolveNotificationUrl(payloadData),
-  };
+if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+  const app = firebase.initializeApp(firebaseConfig);
+  const messaging = firebase.messaging(app);
 
-  return {
-    body: notification.body || payloadData.body || 'Tienes una nueva notificación',
-    icon: notification.icon || '/logo192.png',
-    badge: '/favicon.ico',
-    tag: payloadData.tag || `carpool-${payloadData.type || 'notification'}`,
-    data,
-    requireInteraction: true,
-    actions: [
-      {
-        action: 'view',
-        title: 'Ver',
+  messaging.onBackgroundMessage((payload) => {
+    const data = (payload && payload.data) || {};
+    const title = data.title || 'Carpool It';
+    const body = data.body || 'Tienes una nueva notificación';
+
+    // iOS requires a visible notification for every push, so this handler
+    // always shows one. Payloads are data-only, so there is no duplicate from
+    // the SDK itself.
+    self.registration.showNotification(title, {
+      body,
+      icon: DEFAULT_ICON,
+      tag: data.tag || 'carpool',
+      renotify: true,
+      vibrate: [200, 100, 200],
+      data: {
+        url: resolveNotificationUrl(data),
       },
-    ],
-  };
+    });
+  });
 }
 
-messaging.onBackgroundMessage((payload) => {
-  const notificationTitle =
-    payload.notification?.title || payload.data?.title || 'Notificación';
-  const notificationOptions = buildNotificationOptions(payload);
+self.addEventListener('install', () => {
+  self.skipWaiting();
+});
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  if (event.action && event.action !== 'view') {
-    return;
-  }
-
-  const targetUrl = new URL(
-    resolveNotificationUrl(event.notification.data),
-    self.location.origin,
-  ).href;
+  const targetUrl = resolveNotificationUrl(event.notification.data);
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(
-      (windowClients) => {
+    clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((windowClients) => {
         for (const client of windowClients) {
-          if (!client.url.startsWith(self.location.origin)) continue;
+          if (new URL(client.url).origin !== self.location.origin) continue;
+          if (!('focus' in client)) continue;
 
-          if ('focus' in client) {
-            if ('navigate' in client && client.url !== targetUrl) {
-              client.navigate(targetUrl);
-            }
-
-            return client.focus();
+          if ('navigate' in client && client.url !== targetUrl) {
+            client.navigate(targetUrl);
           }
+
+          return client.focus();
         }
 
         if (clients.openWindow) {
           return clients.openWindow(targetUrl);
         }
-      },
-    ),
+
+        return undefined;
+      })
   );
 });

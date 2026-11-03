@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import z from 'zod';
 import { QueryKeys } from '@/const/query-keys';
 import { getDirectionByHour, getNowInLima } from '@/lib/utils';
+import { useTourFlow } from '@/modules/tour/hooks/use-tour-flow';
 import { TravelService } from '@/modules/travel/services';
 import Travel from '@/modules/travel/Travel';
 
@@ -23,6 +24,14 @@ const homeSearchSchema = z
       .optional()
       .catch(undefined),
     onlyOffers: z
+      .union([z.boolean(), z.string()])
+      .optional()
+      .transform((val) => {
+        if (val === undefined) return undefined;
+        return val === 'true' || val === true;
+      })
+      .catch(undefined),
+    onlyRecurrents: z
       .union([z.boolean(), z.string()])
       .optional()
       .transform((val) => {
@@ -64,12 +73,13 @@ export const Route = createFileRoute('/_layout/_auth/home')({
       direction: deps.direction ?? defaultDirection,
       datetime: deps.datetime,
       onlyOffers: profileData?.isDriver ? false : (deps.onlyOffers ?? true),
+      onlyRecurrents: deps.onlyRecurrents ?? false,
       limit: deps.limit ?? 5,
       offset: deps.offset ?? 0,
       location: resolvedLocation,
     };
 
-    await queryClient.ensureInfiniteQueryData({
+    await queryClient.infiniteQuery({
       queryKey: [QueryKeys.TRAVEL, filters],
       queryFn: () => TravelService.listRooms(filters),
       initialPageParam: 0,
@@ -80,5 +90,7 @@ export const Route = createFileRoute('/_layout/_auth/home')({
 });
 
 function RouteComponent() {
+  useTourFlow('home', { autoStart: true, autoStartDelay: 800 });
+
   return <Travel />;
 }

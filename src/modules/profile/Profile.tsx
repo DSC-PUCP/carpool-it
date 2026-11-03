@@ -1,6 +1,6 @@
 import styles from '@/assets/styles/no-scrollbar.module.css';
-import { useTourFlow } from '@/hooks/use-tour-flow';
 import { cn } from '@/lib/utils';
+import { useTourFlow } from '@/modules/tour/hooks/use-tour-flow';
 import MenuItems from './components/MenuItems';
 import ProfileHeader from './components/ProfileHeader';
 import StatsCards from './components/StatsCards';

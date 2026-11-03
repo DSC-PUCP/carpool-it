@@ -11,7 +11,7 @@ CREATE TABLE public.driver (
     color character varying(30),
     seats smallint DEFAULT 4,
     rides bigint DEFAULT 0 NOT NULL,
-    rating smallint,
+    rating numeric(3,2),
     votes bigint DEFAULT 0 NOT NULL,
     price numeric DEFAULT '5'::numeric NOT NULL,
     qr_url text,
@@ -109,6 +109,27 @@ CREATE TABLE public.travel_room_stop (
 
 
 --
+-- Name: recurrent_travel; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.recurrent_travel (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    direction public.travel_direction NOT NULL,
+    origin_coords extensions.geometry(Point,4326) NOT NULL,
+    destination_coords extensions.geometry(Point,4326) NOT NULL,
+    seats smallint DEFAULT 1 NOT NULL,
+    price numeric(4,2) DEFAULT 5.00 NOT NULL,
+    recurrence_rule text NOT NULL,
+    route_description text,
+    is_visible boolean DEFAULT true NOT NULL,
+    trip_time time without time zone DEFAULT '08:00'::time without time zone NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- TOC entry 4958 (class 2606 OID 41286)
 -- Name: driver driver_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -190,6 +211,14 @@ ALTER TABLE ONLY public.travel_room_stop
 
 
 --
+-- Name: recurrent_travel recurrent_travel_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recurrent_travel
+    ADD CONSTRAINT recurrent_travel_pkey PRIMARY KEY (id);
+
+
+--
 -- TOC entry 4944 (class 1259 OID 40095)
 -- Name: idx_location_coords_gist; Type: INDEX; Schema: public; Owner: -
 --
@@ -220,6 +249,19 @@ CREATE INDEX idx_push_device_token_user_id ON public.push_device_token USING btr
 
 CREATE INDEX idx_stop_coords_gist ON public.travel_room_stop USING gist (stop_coords);
 
+
+--
+-- Name: idx_recurrent_travel_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_recurrent_travel_user_id ON public.recurrent_travel USING btree (user_id);
+
+
+--
+-- Name: idx_recurrent_travel_origin_coords_gist; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_recurrent_travel_origin_coords_gist ON public.recurrent_travel USING gist (origin_coords);
 
 
 --
@@ -292,4 +334,66 @@ ALTER TABLE ONLY public.travel_room_stop
 
 ALTER TABLE ONLY public.travel_room_stop
     ADD CONSTRAINT travel_room_stop_user_id_fkey1 FOREIGN KEY (user_id) REFERENCES public.profile(id) ON DELETE CASCADE;
+
+
+--
+-- Name: recurrent_travel recurrent_travel_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recurrent_travel
+    ADD CONSTRAINT recurrent_travel_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profile(id) ON DELETE CASCADE;
+
+CREATE TABLE public.travel_room_message (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    room_id uuid NOT NULL,
+    user_id uuid DEFAULT auth.uid() NOT NULL,
+    content text NOT NULL,
+    image_url text,
+    reply_to_id uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT travel_room_message_content_check CHECK ((char_length(content) >= 1) AND (char_length(content) <= 2000)),
+    CONSTRAINT travel_room_message_pkey PRIMARY KEY (id),
+    CONSTRAINT travel_room_message_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.travel_room(id) ON DELETE CASCADE,
+    CONSTRAINT travel_room_message_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profile(id)
+);
+
+ALTER TABLE public.travel_room_message
+    ADD CONSTRAINT travel_room_message_reply_to_id_fkey
+    FOREIGN KEY (reply_to_id) REFERENCES public.travel_room_message(id) ON DELETE SET NULL;
+
+CREATE INDEX travel_room_message_room_id_created_at_idx
+    ON public.travel_room_message USING btree (room_id, created_at);
+
+ALTER TABLE public.profile
+    ADD CONSTRAINT profile_tag_length_check
+    CHECK (char_length(btrim(tag)) BETWEEN 1 AND 25)
+    NOT VALID;
+
+ALTER TABLE public.driver
+    ADD CONSTRAINT driver_plate_length_check
+    CHECK (plate IS NULL OR char_length(btrim(plate)) = 3),
+    ADD CONSTRAINT driver_color_not_blank_check
+    CHECK (color IS NULL OR char_length(btrim(color)) > 0),
+    ADD CONSTRAINT driver_seats_positive_check
+    CHECK (seats IS NULL OR seats >= 1),
+    ADD CONSTRAINT driver_price_nonnegative_check
+    CHECK (price >= 0),
+    ADD CONSTRAINT driver_wallet_address_format_check
+    CHECK (wallet_address IS NULL OR wallet_address ~ '^(0x)?[a-fA-F0-9]{40}$');
+
+ALTER TABLE public.location
+    ADD CONSTRAINT location_name_length_check
+    CHECK (char_length(btrim(name)) BETWEEN 1 AND 100);
+
+ALTER TABLE public.travel_room_stop
+    ADD CONSTRAINT travel_room_stop_seats_range_check
+    CHECK (seats BETWEEN 1 AND 8),
+    ADD CONSTRAINT travel_room_stop_price_nonnegative_check
+    CHECK (price >= 0);
+
+ALTER TABLE public.recurrent_travel
+    ADD CONSTRAINT recurrent_travel_seats_range_check
+    CHECK (seats BETWEEN 1 AND 8),
+    ADD CONSTRAINT recurrent_travel_price_nonnegative_check
+    CHECK (price >= 0);
 

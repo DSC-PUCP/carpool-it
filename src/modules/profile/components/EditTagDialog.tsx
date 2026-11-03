@@ -12,7 +12,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { TOUR_STEP_IDS } from '@/lib/tour-constants';
+import { TOUR_STEP_IDS } from '@/modules/tour/constants';
 import { useUpdateTag } from '../hooks/useUpdateTag';
 
 export default function EditTagDialog() {
@@ -50,8 +50,8 @@ export default function EditTagDialog() {
         <div>
           <Input
             placeholder="Nuevo tag"
-            maxLength={15}
-            minLength={3}
+            maxLength={25}
+            minLength={1}
             value={tag}
             onChange={(e) => setTag(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && onSave()}

@@ -1,4 +1,11 @@
-import { BadgeCheck, Calendar, CarFront, Clock, MapPin } from 'lucide-react';
+import {
+  BadgeCheck,
+  Calendar,
+  CarFront,
+  Clock,
+  MapPin,
+  Repeat,
+} from 'lucide-react';
 import { useRef } from 'react';
 import styles from '@/assets/styles/no-scrollbar.module.css';
 import { Badge } from '@/components/ui/badge';
@@ -45,13 +52,16 @@ export default function FilterChips() {
   const isAllSelected =
     !filters.datetime &&
     filters.onlyOffers !== true &&
+    filters.onlyRecurrents !== true &&
     filters.location === undefined;
 
   const isAnyFilterApplied =
     Boolean(filters.datetime) ||
     filters.onlyOffers === true ||
+    filters.onlyRecurrents === true ||
     filters.location !== undefined;
   const isOffersSelected = filters.onlyOffers === true;
+  const isRecurrentsSelected = filters.onlyRecurrents === true;
 
   const isDefaultLocationSelected = filters.location === 'default';
 
@@ -81,6 +91,7 @@ export default function FilterChips() {
           setFilters({
             datetime: undefined,
             onlyOffers: undefined,
+            onlyRecurrents: undefined,
             location: undefined,
           })
         }
@@ -102,6 +113,22 @@ export default function FilterChips() {
       >
         <CarFront className="w-4 h-4" />
         <span>Asignados</span>
+      </Badge>
+
+      <Badge
+        variant={isRecurrentsSelected ? 'default' : 'outline'}
+        className={cn(
+          baseBadgeClass,
+          isRecurrentsSelected ? activeClass : inactiveClass
+        )}
+        onClick={() =>
+          setFilters({
+            onlyRecurrents: isRecurrentsSelected ? undefined : true,
+          })
+        }
+      >
+        <Repeat className="w-4 h-4" />
+        <span>Recurrentes</span>
       </Badge>
 
       <Badge

@@ -7,7 +7,7 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '@/components/ui/input-group';
-import { TOUR_STEP_IDS } from '@/lib/tour-constants';
+import { TOUR_STEP_IDS } from '@/modules/tour/constants';
 import type { FormSchema } from '../../NewTravel';
 
 type PriceEstimateProps = {

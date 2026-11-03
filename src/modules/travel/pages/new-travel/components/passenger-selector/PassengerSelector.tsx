@@ -3,7 +3,7 @@ import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Field, FieldError } from '@/components/ui/field';
-import { TOUR_STEP_IDS } from '@/lib/tour-constants';
+import { TOUR_STEP_IDS } from '@/modules/tour/constants';
 import type { FormSchema } from '../../NewTravel';
 
 interface PassengerSelectorProps {

@@ -1,16 +1,16 @@
 import type { TravelRepository } from '@/core/interfaces';
 import getSupabaseClient from '@/lib/supabase';
 import { Result } from '@/lib/utils';
+import { bucketRepository } from '../bucket';
 import { TravelMappers } from './mappers';
 
 export const travelRepository: TravelRepository = {
-  userHaveActiveRide: async (userId) => {
+  userHaveRide: async (userId) => {
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('travel_room_stop')
       .select('room_id, travel_room(active,recurrence_rule)')
       .eq('user_id', userId)
-      .eq('travel_room.active', true)
       .is('travel_room.recurrence_rule', null)
       .maybeSingle();
 
@@ -43,6 +43,45 @@ export const travelRepository: TravelRepository = {
     });
   },
 
+  searchVisibleRecurrents: async (direction) => {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.rpc(
+      'search_visible_recurrent_travels',
+      {
+        p_direction: direction ?? null,
+        p_limit: 20,
+        p_offset: 0,
+      }
+    );
+    if (error) return Result.error(new Error(error.message));
+
+    const travels = (
+      (data?.travels as Array<Record<string, unknown>>) ?? []
+    ).map((t) => ({
+      id: t.id as string,
+      direction: t.direction as 'to_campus' | 'from_campus',
+      originCoords: {
+        lat: (t.origin_coords as number[])?.[0] ?? 0,
+        lon: (t.origin_coords as number[])?.[1] ?? 0,
+      },
+      destinationCoords: {
+        lat: (t.destination_coords as number[])?.[0] ?? 0,
+        lon: (t.destination_coords as number[])?.[1] ?? 0,
+      },
+      seats: (t.seats as number) ?? 1,
+      price: (t.price as number) ?? 5,
+      recurrenceRule: t.recurrence_rule as string,
+      routeDescription: (t.route_description as string) ?? null,
+      isVisible: true,
+      tripTime: (t.trip_time as string) ?? '08:00',
+      userId: t.user_id as string,
+      userTag: t.user_tag as string,
+      userAvatar: t.user_avatar as string | null,
+    }));
+
+    return Result.success(travels);
+  },
+
   createRoom: async (input) => {
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
@@ -51,6 +90,7 @@ export const travelRepository: TravelRepository = {
         owner_id: input.ownerId,
         datetime: input.datetime.toISOString(),
         direction: input.direction,
+        active: input.active,
       })
       .select('id')
       .single();
@@ -61,6 +101,10 @@ export const travelRepository: TravelRepository = {
 
   deleteRoom: async (roomId) => {
     const supabase = getSupabaseClient();
+    const cleanupResult = await bucketRepository.deleteChatRoomFiles(roomId);
+    if (cleanupResult.isFailure())
+      return Result.error(cleanupResult.getError());
+
     const { error } = await supabase
       .from('travel_room')
       .delete()
@@ -93,13 +137,56 @@ export const travelRepository: TravelRepository = {
   },
   joinRoom: async (params) => {
     const supabase = getSupabaseClient();
+    let seats = params.seats;
+
+    if (params.userRole === 'driver') {
+      const { data: existingStops, error: stopsError } = await supabase
+        .from('travel_room_stop')
+        .select('user_role')
+        .eq('room_id', params.roomId);
+
+      if (stopsError) return Result.error(stopsError);
+
+      const isAcceptingPassengerRequest =
+        existingStops.length > 0 &&
+        existingStops.every((stop) => stop.user_role === 'passenger');
+
+      if (!isAcceptingPassengerRequest) {
+        const { error } = await supabase.from('travel_room_stop').insert({
+          room_id: params.roomId,
+          user_id: params.userId,
+          user_role: params.userRole,
+          stop_coords: `POINT(${params.stopCoords.lon} ${params.stopCoords.lat})`,
+          price: params.price,
+          seats,
+        });
+
+        if (error) return Result.error(error);
+        return Result.success();
+      }
+
+      const { data: vehicle, error: vehicleError } = await supabase
+        .from('driver')
+        .select('seats')
+        .eq('id', params.userId)
+        .single();
+
+      if (vehicleError) return Result.error(vehicleError);
+      if (!vehicle?.seats) {
+        return Result.error(
+          new Error('No se encontró la capacidad del vehículo del conductor.')
+        );
+      }
+      seats = vehicle.seats;
+    }
+
     const { error } = await supabase.from('travel_room_stop').insert({
       room_id: params.roomId,
       user_id: params.userId,
       user_role: params.userRole,
       stop_coords: `POINT(${params.stopCoords.lon} ${params.stopCoords.lat})`,
       price: params.price,
-      seats: params.seats,
+      seats,
     });
 
     if (error) return Result.error(error);
@@ -136,6 +223,17 @@ export const travelRepository: TravelRepository = {
       .update({ owner_id: params.newOwnerId })
       .eq('id', params.roomId);
 
+    if (error) return Result.error(error);
+    return Result.success();
+  },
+
+  updateRoomSettings: async (params) => {
+    const supabase = getSupabaseClient();
+    const { error } = await supabase.rpc('update_travel_room_settings', {
+      p_room_id: params.roomId,
+      p_active: params.active,
+      p_allow: params.allow,
+    });
     if (error) return Result.error(error);
     return Result.success();
   },

@@ -14,12 +14,12 @@ const config = defineConfig({
         name: 'ssr',
       },
     }),
-    tanstackStart(),
-    viteReact({
-      babel: {
-        plugins: ["babel-plugin-react-compiler"],
-      },
+    tanstackStart({
+      prerender: {
+        enabled: true,
+      }
     }),
+    viteReact({ compiler: true}),
   ],
   resolve: {
     tsconfigPaths: true,

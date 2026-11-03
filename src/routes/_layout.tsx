@@ -4,11 +4,11 @@ import AppSidebar from '@/components/common/AppSidebar';
 import WelcomeDialog from '@/components/common/WelcomeDialog';
 import AppLayout from '@/components/layout/AppLayout';
 import GlowBackground from '@/components/layout/glow-background/GlowBackground';
-import { TourProvider } from '@/components/tour';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { QueryKeys } from '@/const/query-keys';
 import { AuthService } from '@/modules/auth/services';
 import { ProfileService } from '@/modules/profile/services';
+import { TourProvider } from '@/modules/tour/engine/TourProvider';
 import { TravelService } from '@/modules/travel/services';
 
 export const Route = createFileRoute('/_layout')({
@@ -20,21 +20,21 @@ export const Route = createFileRoute('/_layout')({
         activeRide: null,
         vehicleData: null,
       };
-    const profileData = await queryClient.ensureQueryData({
+    const profileData = await queryClient.query({
       queryKey: [QueryKeys.PROFILE],
       queryFn: () => ProfileService.getProfile(user.id),
     });
-    const locationsData = await queryClient.ensureQueryData({
+    const locationsData = await queryClient.query({
       queryKey: [QueryKeys.LOCATIONS],
       queryFn: () => ProfileService.getLocations(user.id),
     });
-    const activeRide = await queryClient.ensureQueryData({
+    const activeRide = await queryClient.query({
       queryKey: [QueryKeys.ACTIVE_RIDE],
       queryFn: () => TravelService.getActiveRideForUser(user.id),
     });
     if (!profileData.isDriver)
       return { profileData, locationsData, vehicleData: null, activeRide };
-    const vehicleData = await queryClient.ensureQueryData({
+    const vehicleData = await queryClient.query({
       queryKey: [QueryKeys.VEHICLE],
       queryFn: () => ProfileService.getVehicle(user.id),
     });

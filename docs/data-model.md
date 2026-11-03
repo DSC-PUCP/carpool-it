@@ -11,7 +11,7 @@ Este documento resume el esquema actual de negocio en Supabase para contexto de 
 
 ## `driver`
 - PK/FK: `id` (uuid, referencia a `profile.id`).
-- Campos clave: `plate`, `color`, `seats`, `rides`, `rating`, `votes`, `price`, `qr_url`, `wallet_address`.
+- Campos clave: `plate`, `color`, `seats`, `rides`, `rating`, `votes`, `price`, `qr_url`, `wallet_address`, `route_description`.
 - Extension del perfil cuando un usuario actua como conductor.
 
 ## `location`
@@ -32,6 +32,18 @@ Este documento resume el esquema actual de negocio en Supabase para contexto de 
 - Campos clave: `user_role`, `stop_coords`, `seats`, `price`, `confirmed`, `created_at`.
 - Representa la participacion y parada de cada usuario en una sala.
 
+## `push_device_token`
+- PK: `id` (uuid).
+- FK: `user_id -> profile.id`.
+- Campos clave: `token`, `platform`, `active`, `created_at`, `updated_at`.
+- Almacena tokens de notificaciones push por dispositivo.
+
+## `recurrent_travel`
+- PK: `id` (uuid).
+- FK: `user_id -> profile.id`.
+- Campos clave: `direction`, `origin_coords`, `destination_coords`, `seats`, `price`, `recurrence_rule`, `route_description`, `is_visible`, `trip_time`, `created_at`, `updated_at`.
+- Define viajes recurrentes programados por el usuario.
+
 ## Relaciones clave
 
 - `profile` 1:1 `driver`.
@@ -39,6 +51,8 @@ Este documento resume el esquema actual de negocio en Supabase para contexto de 
 - `profile` 1:N `travel_room` (como owner).
 - `travel_room` 1:N `travel_room_stop`.
 - `profile` 1:N `travel_room_stop`.
+- `profile` 1:N `push_device_token`.
+- `profile` 1:N `recurrent_travel`.
 
 ## Consideraciones para desarrollo
 
@@ -52,5 +66,7 @@ El esquema base de contexto compartido por el equipo incluye las tablas:
 - `driver`
 - `location`
 - `profile`
+- `push_device_token`
+- `recurrent_travel`
 - `travel_room`
 - `travel_room_stop`

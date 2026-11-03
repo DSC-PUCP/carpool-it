@@ -1,6 +1,5 @@
 import type { RideListFilters } from '@/core/interfaces/travel-repository';
 import type { RideRole } from '@/core/models';
-import { PushNotificationsService } from '@/modules/notifications/services';
 import { travelRepository } from '@/repository';
 import { profileRepository } from '@/repository/profile';
 import { isCampusLocation } from './utils';
@@ -19,6 +18,13 @@ type PublishRidePayload = {
   campusAt: Date;
   requestedSeats: number;
   price: number;
+  isPrivate?: boolean;
+  isRecurrent?: boolean;
+  recurrenceRule?: string;
+  isVisible?: boolean;
+  isPrefilledRecurrent?: boolean;
+  routeDescription?: string;
+  tripTime?: string;
 };
 
 export namespace TravelService {
@@ -36,8 +42,16 @@ export namespace TravelService {
       },
     };
   };
+
+  export const listVisibleRecurrents = async (
+    direction?: 'to_campus' | 'from_campus'
+  ) => {
+    const result = await travelRepository.searchVisibleRecurrents(direction);
+    if (result.isFailure()) throw new Error(result.getError()?.message);
+    return result.getValue() ?? [];
+  };
   export const getActiveRideForUser = async (userId: string) => {
-    const result = await travelRepository.userHaveActiveRide(userId);
+    const result = await travelRepository.userHaveRide(userId);
     if (result.isFailure()) throw new Error(result.getError()?.message);
     return result.getValue();
   };
@@ -56,7 +70,7 @@ export namespace TravelService {
         );
     }
 
-    const haveActiveTravelResult = await travelRepository.userHaveActiveRide(
+    const haveActiveTravelResult = await travelRepository.userHaveRide(
       payload.ownerId
     );
     if (haveActiveTravelResult.isFailure())
@@ -70,6 +84,7 @@ export namespace TravelService {
       datetime: payload.campusAt,
       direction,
       ownerId: payload.ownerId,
+      active: !payload.isPrivate,
     });
     if (createRoomResult.isFailure())
       throw new Error('Error al crear la sala de viaje.');
@@ -95,6 +110,36 @@ export namespace TravelService {
       await travelRepository.deleteRoom(createRoomResult.getValue() as string);
       throw new Error('Error al unirse a la sala de viaje.');
     }
+
+    // Save recurrent template only if user created a new one (not pre-filled from existing)
+    if (
+      payload.isRecurrent &&
+      payload.recurrenceRule &&
+      !payload.isPrefilledRecurrent
+    ) {
+      const direction = isCampusLocation([
+        payload.origin.lat,
+        payload.origin.lon,
+      ])
+        ? 'from_campus'
+        : 'to_campus';
+      try {
+        await profileRepository.addRecurringTrip(payload.ownerId, {
+          direction,
+          originCoords: payload.origin,
+          destinationCoords: payload.destination,
+          seats: payload.requestedSeats,
+          price: payload.price,
+          recurrenceRule: payload.recurrenceRule,
+          routeDescription: payload.routeDescription ?? null,
+          isVisible: payload.isVisible ?? true,
+          tripTime: payload.tripTime ?? '08:00',
+        });
+      } catch {
+        // Don't fail the whole publish if recurrent save fails
+      }
+    }
+
     return createRoomResult.getValue() as string;
   };
 
@@ -111,7 +156,7 @@ export namespace TravelService {
   }) => {
     const { roomId, userId, role, seats, price, stopCoords } = params;
     const userHaveActiveTravelResult =
-      await travelRepository.userHaveActiveRide(userId);
+      await travelRepository.userHaveRide(userId);
     if (userHaveActiveTravelResult.isFailure())
       throw new Error('Error al verificar viajes activos del usuario.');
     if (userHaveActiveTravelResult.getValue())
@@ -136,16 +181,6 @@ export namespace TravelService {
       throw new Error(
         `Error al unirse a la sala de viaje: ${result.getError()?.message}`
       );
-
-    void PushNotificationsService.notifyJoinRoom({
-      roomId,
-      actorUserId: userId,
-    }).catch((error) => {
-      console.error(
-        'No se pudo enviar notificacion de ingreso al viaje:',
-        error
-      );
-    });
 
     return;
   };
@@ -188,16 +223,6 @@ export namespace TravelService {
     const quitResult = await travelRepository.quitRoom({ roomId, userId });
     if (quitResult.isFailure())
       throw new Error('Error al salir de la sala de viaje.');
-
-    void PushNotificationsService.notifyLeaveRoom({
-      roomId,
-      actorUserId: userId,
-    }).catch((error) => {
-      console.error(
-        'No se pudo enviar notificacion de salida del viaje:',
-        error
-      );
-    });
   };
 
   export const setNextStop = async (params: {
@@ -232,6 +257,15 @@ export namespace TravelService {
     rate: number;
   }) => {
     const result = await travelRepository.rateDriver(params);
+    if (result.isFailure()) throw new Error(result.getError()?.message);
+  };
+
+  export const updateRoomSettings = async (params: {
+    roomId: string;
+    active: boolean;
+    allow: boolean;
+  }) => {
+    const result = await travelRepository.updateRoomSettings(params);
     if (result.isFailure()) throw new Error(result.getError()?.message);
   };
 

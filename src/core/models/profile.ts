@@ -8,6 +8,7 @@ export interface UserProfile {
   tag: string;
   avatar: string | null;
   rating: number | null;
+  ratingVotes: number;
   ridesCount: number;
   co2Saved: number;
   isDriver: boolean;
@@ -38,7 +39,23 @@ export interface UserLocation {
 
 export interface RecurringTrip {
   id: string;
-  datetime: Date;
   direction: TravelDirection;
-  recurrenceRule: string | null;
+  originCoords: { lat: number; lon: number };
+  destinationCoords: { lat: number; lon: number };
+  seats: number;
+  price: number;
+  recurrenceRule: string;
+  routeDescription: string | null;
+  isVisible: boolean;
+  tripTime: string; // HH:MM format
+}
+
+export interface PublicProfile {
+  id: string;
+  tag: string;
+  avatar: string | null;
+  rating: number | null;
+  ridesCount: number;
+  isDriver: boolean;
+  recurrentTrips: RecurringTrip[];
 }

@@ -1,5 +1,5 @@
 import { Link, useLoaderData, useRouteContext } from '@tanstack/react-router';
-import { MapPinOff, MapPinXInside } from 'lucide-react';
+import { MapPinOff, MapPinXInside, Repeat } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import styles from '@/assets/styles/no-scrollbar.module.css';
 import { Button } from '@/components/ui/button';
@@ -11,15 +11,22 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty';
 import { cn } from '@/lib/utils';
+import { TOUR_STEP_IDS } from '@/modules/tour/constants';
 import FilterChips from './components/filter-chips/FilterChips';
+import RecurrentRideCard, {
+  type RecurrentCardData,
+} from './components/recurrent-card/RecurrentRideCard';
 import RideCard from './components/ride-card/RideCard';
 import RideCardSkeleton from './components/ride-card/RideCardSkeleton';
 import UserHeader from './components/user-header/UserHeader';
 import { useListRooms } from './hooks/useListRooms';
+import { useListVisibleRecurrents } from './hooks/useListVisibleRecurrents';
 
 export default function Travel() {
   const { user } = useRouteContext({ from: '/_layout/_auth/home' });
   const { filters } = useLoaderData({ from: '/_layout/_auth/home' });
+
+  const onlyRecurrents = filters.onlyRecurrents === true;
 
   const {
     isError,
@@ -29,6 +36,9 @@ export default function Travel() {
     isFetchingNextPage,
     fetchNextPage,
   } = useListRooms(filters);
+
+  const { data: recurrents, isLoading: isLoadingRecurrents } =
+    useListVisibleRecurrents(onlyRecurrents ? filters.direction : undefined);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -57,7 +67,10 @@ export default function Travel() {
         <UserHeader {...user} />
       </div>
 
-      <main className="flex flex-col flex-1 overflow-hidden z-10 relative">
+      <main
+        id={TOUR_STEP_IDS.HOME_FEED}
+        className="flex flex-col flex-1 overflow-hidden z-10 relative"
+      >
         <div className="shrink-0">
           <FilterChips />
         </div>
@@ -67,7 +80,36 @@ export default function Travel() {
             styles['no-scrollbar']
           )}
         >
-          {isLoading ? (
+          {onlyRecurrents ? (
+            // Recurrents-only view
+            isLoadingRecurrents ? (
+              ['sk-1', 'sk-2', 'sk-3'].map((key) => (
+                <RideCardSkeleton key={key} />
+              ))
+            ) : recurrents && recurrents.length > 0 ? (
+              recurrents.map((trip) => (
+                <RecurrentRideCard
+                  key={trip.id}
+                  data={trip as RecurrentCardData}
+                />
+              ))
+            ) : (
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Repeat />
+                  </EmptyMedia>
+                  <EmptyTitle>No hay viajes recurrentes disponibles</EmptyTitle>
+                </EmptyHeader>
+                <EmptyContent>
+                  <Button asChild>
+                    <Link to="/travel/new"> Crear un viaje recurrente</Link>
+                  </Button>
+                </EmptyContent>
+              </Empty>
+            )
+          ) : // Normal view (travels + optional recurrents)
+          isLoading ? (
             ['sk-1', 'sk-2', 'sk-3'].map((key) => (
               <RideCardSkeleton key={key} />
             ))

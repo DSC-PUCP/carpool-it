@@ -1,4 +1,3 @@
-import { ClientOnly } from '@tanstack/react-router';
 import { ArrowUpDown, MapPin, Star } from 'lucide-react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import Typography from '@/components/typography';
@@ -11,31 +10,26 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Field, FieldError } from '@/components/ui/field';
 import { Label } from '@/components/ui/label';
 import { useLocations } from '@/hooks/use-locations';
-import { TOUR_STEP_IDS } from '@/lib/tour-constants';
+import { TOUR_STEP_IDS } from '@/modules/tour/constants';
 import MapSelector from '@/modules/travel/pages/new-travel/components/MapDialog';
 import { isCampusLocation } from '@/modules/travel/utils';
 import type { FormSchema } from '../../NewTravel';
 
 export default function RouteInputs() {
   const form = useFormContext<FormSchema>();
-  const { data: locations } = useLocations();
   const handleToggle = () => {
     const originVal = { ...form.getValues('origin') };
     form.setValue('origin', { ...form.getValues('destination') });
     form.setValue('destination', originVal);
   };
-  const { destination, origin, newLocation } = useWatch({
+  const { destination, origin } = useWatch({
     control: form.control,
   });
 
   const originCampus =
     origin && isCampusLocation([origin.lat, origin.lon] as [number, number]);
   return (
-    <Card
-      className="rounded-2xl mb-6"
-      id={TOUR_STEP_IDS.TRAVEL_FORM_ORIGIN}
-      data-tour-offer-route={TOUR_STEP_IDS.OFFER_FORM_ROUTE}
-    >
+    <Card className="rounded-2xl mb-6">
       <CardContent className="p-1">
         <div className="relative flex flex-col gap-0">
           {/* Origin */}
@@ -46,70 +40,15 @@ export default function RouteInputs() {
               <div className="w-0.5 h-10 border-l-2 border-dashed border-border/30 my-1 group-hover:border-primary transition-colors" />
             </div>
 
-            <div className="flex-1 py-1 flex flex-col gap-1 w-full">
+            <div className="flex-1 py-1 flex flex-col gap-1">
               <Label>
                 <Typography variant="muted">Saliendo de</Typography>
               </Label>
-              <ClientOnly>
-                <Controller
-                  control={form.control}
-                  name="origin"
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid}>
-                      <ButtonGroup className="flex-1">
-                        <span
-                          id={TOUR_STEP_IDS.TRAVEL_FORM_ORIGIN_MAP}
-                          className="flex-1 inline-flex"
-                        >
-                          <MapSelector
-                            position={
-                              Object.keys(field.value ?? {}).length
-                                ? { lat: field.value.lat, lng: field.value.lon }
-                                : undefined
-                            }
-                            setPosition={({ lat, lng }) => {
-                              if (locations && locations.length === 0)
-                                form.setValue('newLocation', true);
-                              field.onChange({
-                                lat,
-                                lon: lng,
-                              });
-                            }}
-                          />
-                        </span>
-                        {!originCampus && (
-                          <>
-                            <ButtonGroupSeparator />
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="outline"
-                              onClick={() => {
-                                if (destination) {
-                                  if (newLocation)
-                                    form.setValue('newLocation', false);
-                                  else form.setValue('newLocation', true);
-                                }
-                              }}
-                            >
-                              <Star
-                                className={
-                                  newLocation
-                                    ? 'text-yellow-400  fill-yellow-400'
-                                    : ''
-                                }
-                              />
-                            </Button>
-                          </>
-                        )}
-                      </ButtonGroup>
-                      {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
-                      )}
-                    </Field>
-                  )}
-                />
-              </ClientOnly>
+              <LocationField
+                name="origin"
+                showFavorite={!originCampus}
+                tourId={TOUR_STEP_IDS.TRAVEL_FORM_ORIGIN}
+              />
             </div>
           </div>
 
@@ -128,10 +67,7 @@ export default function RouteInputs() {
           </div>
 
           {/* Destination */}
-          <div
-            className="flex items-center px-4"
-            id={TOUR_STEP_IDS.TRAVEL_FORM_DESTINATION}
-          >
+          <div className="flex items-center px-4">
             <div className="flex flex-col items-center mr-4 pb-1">
               <div className="w-0.5 h-1" />
               <MapPin className="text-primary size-6" />
@@ -141,70 +77,79 @@ export default function RouteInputs() {
               <Label>
                 <Typography variant="muted">Con destino a</Typography>
               </Label>
-              <ClientOnly>
-                <Controller
-                  control={form.control}
-                  name="destination"
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid}>
-                      <ButtonGroup className="flex-1">
-                        <span
-                          id={TOUR_STEP_IDS.TRAVEL_FORM_DESTINATION_MAP}
-                          className="flex-1 inline-flex"
-                        >
-                          <MapSelector
-                            position={
-                              Object.keys(field.value ?? {}).length
-                                ? { lat: field.value.lat, lng: field.value.lon }
-                                : undefined
-                            }
-                            setPosition={({ lat, lng }) => {
-                              if (locations && locations.length === 0)
-                                form.setValue('newLocation', true);
-                              field.onChange({
-                                lat,
-                                lon: lng,
-                              });
-                            }}
-                          />
-                        </span>
-                        {originCampus && (
-                          <>
-                            <ButtonGroupSeparator />
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="outline"
-                              onClick={() => {
-                                if (origin) {
-                                  if (newLocation)
-                                    form.setValue('newLocation', false);
-                                  else form.setValue('newLocation', true);
-                                }
-                              }}
-                            >
-                              <Star
-                                className={
-                                  newLocation
-                                    ? 'text-yellow-400  fill-yellow-400'
-                                    : ''
-                                }
-                              />
-                            </Button>
-                          </>
-                        )}
-                      </ButtonGroup>{' '}
-                      {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
-                      )}
-                    </Field>
-                  )}
-                />
-              </ClientOnly>
+              <LocationField
+                name="destination"
+                showFavorite={originCampus}
+                tourId={TOUR_STEP_IDS.TRAVEL_FORM_DESTINATION}
+              />
             </div>
           </div>
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function LocationField({
+  name,
+  showFavorite,
+  tourId,
+}: {
+  name: 'origin' | 'destination';
+  showFavorite: boolean | undefined;
+  tourId?: string;
+}) {
+  const form = useFormContext<FormSchema>();
+  const { data: locations } = useLocations();
+  const { destination, origin, newLocation } = useWatch({
+    control: form.control,
+  });
+  const canToggleFavorite = name === 'origin' ? destination : origin;
+
+  return (
+    <Controller
+      control={form.control}
+      name={name}
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid}>
+          <ButtonGroup id={tourId}>
+            <MapSelector
+              position={
+                Object.keys(field.value ?? {}).length
+                  ? { lat: field.value.lat, lng: field.value.lon }
+                  : undefined
+              }
+              setPosition={({ lat, lng }) => {
+                if (locations && locations.length === 0)
+                  form.setValue('newLocation', true);
+                field.onChange({ lat, lon: lng });
+              }}
+            />
+            {showFavorite && (
+              <>
+                <ButtonGroupSeparator />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  onClick={() => {
+                    if (canToggleFavorite) {
+                      form.setValue('newLocation', !newLocation);
+                    }
+                  }}
+                >
+                  <Star
+                    className={
+                      newLocation ? 'text-yellow-400 fill-yellow-400' : ''
+                    }
+                  />
+                </Button>
+              </>
+            )}
+          </ButtonGroup>
+          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+        </Field>
+      )}
+    />
   );
 }

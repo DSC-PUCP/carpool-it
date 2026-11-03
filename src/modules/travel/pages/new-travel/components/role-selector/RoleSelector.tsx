@@ -1,12 +1,12 @@
 import { useRouteContext } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
-import { useTour } from '@/components/tour';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { DriverVehicle } from '@/core/models';
 import getLocalStorage from '@/lib/localStorage';
-import { TOUR_STEP_IDS } from '@/lib/tour-constants';
-import { TOUR_FLOWS } from '@/lib/tours';
+import { TOUR_STEP_IDS, TOUR_STORAGE_KEYS } from '@/modules/tour/constants';
+import { useTour } from '@/modules/tour/engine/TourProvider';
+import { TOUR_FLOWS } from '@/modules/tour/flows';
 import type { FormSchema } from '../../NewTravel';
 import DialogDriver from './DialogDriver';
 
@@ -36,7 +36,7 @@ export default function RoleSelector({
       const flow = TOUR_FLOWS.driverPublish;
       setSteps([...flow.steps]);
       setIsTourCompleted(false);
-      getLocalStorage().setItem('carpool_driver_publish_tour_seen', '1');
+      getLocalStorage().setItem(TOUR_STORAGE_KEYS.DRIVER_PUBLISH, '1');
       startTour();
     }, 500);
   };
@@ -47,7 +47,7 @@ export default function RoleSelector({
       const flow = TOUR_FLOWS.driverPublish;
       setSteps([...flow.steps]);
       setIsTourCompleted(false);
-      getLocalStorage().setItem('carpool_driver_publish_tour_seen', '1');
+      getLocalStorage().setItem(TOUR_STORAGE_KEYS.DRIVER_PUBLISH, '1');
       setTimeout(() => startTour(), 300);
     };
 

@@ -7,11 +7,12 @@ import {
   CreditCard,
   LogOut,
   MapPin,
+  Repeat,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useProfile } from '@/hooks/use-profile';
-import { TOUR_STEP_IDS } from '@/lib/tour-constants';
 import { AuthService } from '@/modules/auth/services';
+import { TOUR_STEP_IDS } from '@/modules/tour/constants';
 
 export default function MenuItems() {
   const navigate = useNavigate();
@@ -77,6 +78,29 @@ export default function MenuItems() {
       </Button>
 
       {/* Recurring Trips */}
+      <Button
+        variant="outline"
+        className="w-full flex items-center gap-4 p-4 rounded-2xl backdrop-filter backdrop-blur-sm h-auto justify-start text-left group"
+        onClick={() =>
+          navigate({
+            to: '/profile/recurrents',
+            viewTransition: { types: ['slide-left'] },
+          })
+        }
+      >
+        <div className="flex items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 w-12 h-12 shrink-0 group-hover:scale-110 transition-transform">
+          <Repeat className="w-5 h-5" />
+        </div>
+        <div className="flex flex-col flex-1 min-w-0">
+          <p className="text-base font-bold truncate">Viajes Recurrentes</p>
+          <p className="text-muted-foreground text-sm truncate">
+            Gestiona tus rutas recurrentes
+          </p>
+        </div>
+        <div className="shrink-0 text-muted-foreground">
+          <ChevronRight className="w-5 h-5" />
+        </div>
+      </Button>
 
       {profileData?.isDriver && (
         <Button

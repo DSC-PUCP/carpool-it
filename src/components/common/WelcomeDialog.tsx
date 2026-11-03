@@ -10,10 +10,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useTourFlow } from '@/hooks/use-tour-flow';
 import getLocalStorage from '@/lib/localStorage';
-
-const ONBOARDING_COMPLETED_KEY = 'carpool_onboarding_completed';
+import { TOUR_STORAGE_KEYS } from '@/modules/tour/constants';
+import { useTourFlow } from '@/modules/tour/hooks/use-tour-flow';
 
 export default function WelcomeDialog() {
   const [open, setOpen] = useState(false);
@@ -26,13 +25,25 @@ export default function WelcomeDialog() {
     setOpen(shouldPrompt);
   }, [shouldPrompt]);
 
+  const handleStart = () => {
+    // Legacy flag read by the travel-form tour gate.
+    getLocalStorage().setItem(TOUR_STORAGE_KEYS.ONBOARDING_LEGACY, '1');
+    setOpen(false);
+    startFlow();
+  };
+
+  const handleSkip = () => {
+    getLocalStorage().setItem(TOUR_STORAGE_KEYS.ONBOARDING_LEGACY, '1');
+    skipFlow();
+    setOpen(false);
+  };
+
   return (
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
-          skipFlow();
-          setOpen(false);
+          handleSkip();
         }
       }}
     >
@@ -61,43 +72,24 @@ export default function WelcomeDialog() {
               .
             </li>
             <li>
-              Revisar la sección de{' '}
+              Instala o agrega la app a tu celular desde{' '}
               <Link
                 to="/profile/asisstance"
-                onClick={() => {
-                  skipFlow();
-                  setOpen(false);
-                }}
+                hash="agregar-a-pantalla-de-inicio"
+                onClick={handleSkip}
                 className="font-medium text-primary underline underline-offset-4 transition-opacity hover:opacity-80"
               >
-                Asistencia
+                asistencia
               </Link>{' '}
-              si quieres resolver dudas frecuentes.
+              y sigue los pasos.
             </li>
           </ul>
         </div>
         <DialogFooter>
-          <Button
-            onClick={() => {
-              const ls = getLocalStorage();
-              ls.setItem(ONBOARDING_COMPLETED_KEY, '1');
-              skipFlow();
-              setOpen(false);
-            }}
-            variant="outline"
-          >
+          <Button onClick={handleSkip} variant="outline">
             Ahora no
           </Button>
-          <Button
-            onClick={() => {
-              const ls = getLocalStorage();
-              ls.setItem(ONBOARDING_COMPLETED_KEY, '1');
-              setOpen(false);
-              startFlow();
-            }}
-          >
-            Iniciar recorrido
-          </Button>
+          <Button onClick={handleStart}>Iniciar recorrido</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

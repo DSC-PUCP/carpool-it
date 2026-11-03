@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import z from 'zod';
 import DriverForm from '@/components/common/driver-form/DriverForm';
-import { useTour } from '@/components/tour';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -23,8 +22,9 @@ import {
 } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import type { DriverVehicle } from '@/core/models';
-import { TOUR_STEP_IDS } from '@/lib/tour-constants';
-import { TOUR_FLOWS } from '@/lib/tours';
+import { TOUR_STEP_IDS } from '@/modules/tour/constants';
+import { useTour } from '@/modules/tour/engine/TourProvider';
+import { TOUR_FLOWS } from '@/modules/tour/flows';
 
 type Props = {
   open: boolean;

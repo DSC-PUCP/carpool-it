@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 import { processQRScreenshot } from '@/lib/utils';
 
 const MAX_QR_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -33,6 +34,7 @@ export default function QrPaymentDialog({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleSelectFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
@@ -55,16 +57,22 @@ export default function QrPaymentDialog({
       setFileError('La imagen no debe superar 5 MB.');
       return;
     }
-    const processedBlob = await processQRScreenshot(file);
-    const processedFile = new File(
-      [processedBlob.blob],
-      `${file.name.split('.')[0]}.webp`,
-      {
-        type: 'image/webp',
-      }
-    );
-    setSelectedFile(processedFile);
-    setPreviewUrl(URL.createObjectURL(processedFile));
+
+    setIsProcessing(true);
+    try {
+      const processedBlob = await processQRScreenshot(file);
+      const processedFile = new File(
+        [processedBlob.blob],
+        `${file.name.split('.')[0]}.webp`,
+        {
+          type: 'image/webp',
+        }
+      );
+      setSelectedFile(processedFile);
+      setPreviewUrl(URL.createObjectURL(processedFile));
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleSave = () => {
@@ -102,7 +110,9 @@ export default function QrPaymentDialog({
         </div>
 
         <div className="border rounded-xl p-3 min-h-40 flex items-center justify-center bg-muted/30">
-          {currentQr ? (
+          {isProcessing ? (
+            <Spinner className="size-8 text-muted-foreground" />
+          ) : currentQr ? (
             <img
               src={currentQr}
               alt="QR de pago"
@@ -117,7 +127,10 @@ export default function QrPaymentDialog({
 
         <DialogFooter>
           <DialogClose>Cancelar</DialogClose>
-          <Button onClick={handleSave} disabled={!selectedFile || isPending}>
+          <Button
+            onClick={handleSave}
+            disabled={!selectedFile || isPending || isProcessing}
+          >
             {isPending ? 'Guardando...' : 'Guardar QR'}
           </Button>
         </DialogFooter>

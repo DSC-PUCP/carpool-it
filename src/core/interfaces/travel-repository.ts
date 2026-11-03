@@ -1,4 +1,5 @@
 import type {
+  RecurringTrip,
   RideDirection,
   RideLocation,
   RideRole,
@@ -10,6 +11,7 @@ export type RideListFilters = {
   direction: RideDirection;
   datetime: Date;
   onlyOffers: boolean;
+  onlyRecurrents: boolean;
   location: Omit<RideLocation, 'label'>;
   limit: number;
   offset: number;
@@ -18,9 +20,10 @@ export type RidePublishInput = {
   ownerId: string;
   direction: RideDirection;
   datetime: Date; // ISO timestamp
+  active: boolean;
 };
 export type TravelRepository = {
-  userHaveActiveRide: (userId: string) => Promise<Result<string | null>>;
+  userHaveRide: (userId: string) => Promise<Result<string | null>>;
   listRooms: (filters?: Partial<RideListFilters>) => Promise<
     Result<{
       travels: Omit<TravelRoom, 'currentStop'>[];
@@ -32,6 +35,9 @@ export type TravelRepository = {
       };
     }>
   >;
+  searchVisibleRecurrents: (
+    direction?: RideDirection
+  ) => Promise<Result<RecurringTrip[]>>;
   createRoom: (input: RidePublishInput) => Promise<Result<TravelRoom['id']>>;
   deleteRoom: (roomId: string) => Promise<Result<void>>;
   getRoom: (roomId: string) => Promise<Result<TravelRoom | null>>;
@@ -58,6 +64,11 @@ export type TravelRepository = {
   updateRoomOwner: (params: {
     roomId: string;
     newOwnerId: string;
+  }) => Promise<Result<void>>;
+  updateRoomSettings: (params: {
+    roomId: string;
+    active: boolean;
+    allow: boolean;
   }) => Promise<Result<void>>;
   updateStopIndex: (params: {
     roomId: string;

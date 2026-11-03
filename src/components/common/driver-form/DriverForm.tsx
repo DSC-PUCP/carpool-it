@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import type { DriverVehicle } from '@/core/models';
-import { TOUR_STEP_IDS } from '@/lib/tour-constants';
+import { TOUR_STEP_IDS } from '@/modules/tour/constants';
 import { vehicleColors } from './const';
 
 export default function DriverForm() {

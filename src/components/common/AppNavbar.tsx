@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from '@tanstack/react-router';
 import { Car, Plus } from 'lucide-react';
 import { navItems } from '@/components/layout/nav-items';
 import { useActiveRide } from '@/hooks/useActiveRide';
-import { TOUR_STEP_IDS } from '@/lib/tour-constants';
+import { TOUR_STEP_IDS } from '@/modules/tour/constants';
 import {
   Navbar,
   NavbarAction,

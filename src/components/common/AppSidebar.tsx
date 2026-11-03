@@ -31,8 +31,8 @@ import {
 } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useActiveRide } from '@/hooks/useActiveRide';
-import { TOUR_STEP_IDS } from '@/lib/tour-constants';
 import { getFallbackAvatar } from '@/lib/utils';
+import { TOUR_STEP_IDS } from '@/modules/tour/constants';
 
 type AppSidebarProps = {
   avatar: string;

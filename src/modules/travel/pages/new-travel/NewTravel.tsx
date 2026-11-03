@@ -1,12 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate, useRouteContext } from '@tanstack/react-router';
+import {
+  useLoaderData,
+  useNavigate,
+  useRouteContext,
+} from '@tanstack/react-router';
 import { ArrowRight, Car, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import z from 'zod';
 import styles from '@/assets/styles/no-scrollbar.module.css';
-import { useTour } from '@/components/tour';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -21,32 +24,36 @@ import { useLocations } from '@/hooks/use-locations';
 import { useProfile } from '@/hooks/use-profile';
 import { useVehicle } from '@/hooks/use-vehicle';
 import getLocalStorage from '@/lib/localStorage';
-import { TOUR_STEP_IDS } from '@/lib/tour-constants';
-import { TOUR_FLOWS } from '@/lib/tours';
-import { cn, getDirectionByHour, getNowInLima } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { useCreateLocation } from '@/modules/profile/pages/location/hooks/useCreateLocation';
+import { TOUR_STEP_IDS, TOUR_STORAGE_KEYS } from '@/modules/tour/constants';
+import { useTour } from '@/modules/tour/engine/TourProvider';
+import { TOUR_FLOWS } from '@/modules/tour/flows';
 import type { LatLngTuple } from '@/modules/travel/const';
 import { universityCoordinates } from '../../const';
 import { getClosestReferencePoint, isCampusLocation } from '../../utils';
 import DateTimeSelector from './components/datetime-selector/DateTimeSelector';
 import PassengerSelector from './components/passenger-selector/PassengerSelector';
 import PriceEstimate from './components/price-estimate/PriceEstimate';
+import RecurrencePrefill from './components/recurrence-selector/RecurrencePrefill';
+import RecurrenceSelector from './components/recurrence-selector/RecurrenceSelector';
 import RoleSelector from './components/role-selector/RoleSelector';
 import RouteInputs from './components/route-inputs/RouteInputs';
 import { usePublishRide } from './hooks/usePublishRide';
+import { useRecurringTrips } from './hooks/useRecurringTrips';
 import { useSetDriver } from './hooks/useSetDriver';
-import { getDefaultDate } from './utils';
-
-const TRAVEL_TOUR_SEEN_KEY = 'carpool_travel_tour_seen';
-const ONBOARDING_COMPLETED_KEY = 'carpool_onboarding_completed';
 
 export default function NewTravel() {
+  const { defaultDate, defaultDirection } = useLoaderData({
+    from: '/_layout/_auth/travel/new',
+  });
   const { user } = useRouteContext({
     from: '/_layout/_auth/travel/new',
   });
   const { data: vehicleData } = useVehicle();
   const { data: profileData } = useProfile();
   const { data: locationsData } = useLocations();
+  const { data: recurringTrips } = useRecurringTrips(user?.id);
   const { mutate, isPending } = usePublishRide();
   const { mutateAsync, isPending: isSettingDriver } = useSetDriver();
   const { mutate: locationMutate } = useCreateLocation();
@@ -64,9 +71,9 @@ export default function NewTravel() {
 
     const ls = getLocalStorage();
     const onboardingCompleted =
-      ls.getItem(ONBOARDING_COMPLETED_KEY) === '1' ||
-      ls.getItem('carpool_onboarding_seen') === '1';
-    const travelTourSeen = ls.getItem(TRAVEL_TOUR_SEEN_KEY) === '1';
+      ls.getItem(TOUR_STORAGE_KEYS.ONBOARDING_LEGACY) === '1' ||
+      ls.getItem(TOUR_STORAGE_KEYS.ONBOARDING) === '1';
+    const travelTourSeen = ls.getItem(TOUR_STORAGE_KEYS.TRAVEL_FORM) === '1';
 
     if (onboardingCompleted && !travelTourSeen) {
       setShowTourPrompt(true);
@@ -76,7 +83,7 @@ export default function NewTravel() {
   const handleTourChoice = (choice: 'request' | 'offer' | 'skip') => {
     const ls = getLocalStorage();
     if (choice !== 'skip') {
-      ls.setItem(TRAVEL_TOUR_SEEN_KEY, '1');
+      ls.setItem(TOUR_STORAGE_KEYS.TRAVEL_FORM, '1');
       if (choice === 'request') {
         form.setValue('role', 'request');
         const flow = TOUR_FLOWS.passenger;
@@ -86,14 +93,14 @@ export default function NewTravel() {
       } else {
         form.setValue('role', 'request');
         if (!vehicleData) {
-          ls.setItem('carpool_driver_tour_pending', '1');
+          ls.setItem(TOUR_STORAGE_KEYS.DRIVER_ONBOARDING_PENDING, '1');
           const flow = TOUR_FLOWS.driverOnboarding;
           setSteps([...flow.steps]);
           setIsTourCompleted(false);
           startTour();
         } else {
           const driverPublishSeen =
-            ls.getItem('carpool_driver_publish_tour_seen') === '1';
+            ls.getItem(TOUR_STORAGE_KEYS.DRIVER_PUBLISH) === '1';
           if (!driverPublishSeen) {
             const flow = TOUR_FLOWS.driverPublish;
             setSteps([...flow.steps]);
@@ -103,7 +110,7 @@ export default function NewTravel() {
         }
       }
     } else {
-      ls.setItem(TRAVEL_TOUR_SEEN_KEY, '1');
+      ls.setItem(TOUR_STORAGE_KEYS.TRAVEL_FORM, '1');
     }
     setShowTourPrompt(false);
   };
@@ -113,10 +120,6 @@ export default function NewTravel() {
     : ('request' as 'offer' | 'request');
   const defaultSeats = vehicleData ? vehicleData.seats : 1;
   const defaultPrice = vehicleData ? vehicleData.price : 5;
-  const nowInLima = getNowInLima();
-  const defaultDirection = getDirectionByHour(nowInLima.getHours());
-  const defaultDate = getDefaultDate(nowInLima);
-
   const defaultLocation = profileData?.locationId
     ? locationsData?.find((loc) => loc.id === profileData.locationId)?.coords
     : undefined;
@@ -145,6 +148,12 @@ export default function NewTravel() {
       origin,
       destination,
       newLocation: false,
+      isRecurrent: false,
+      recurrenceRule: '',
+      isVisible: true,
+      isPrefilledRecurrent: false,
+      tripTime: '08:00',
+      isPrivate: false,
     },
   });
 
@@ -177,13 +186,27 @@ export default function NewTravel() {
         campusAt: data.date,
         requestedSeats: data.seats,
         price: data.price,
+        isPrivate: data.isPrivate,
+        isRecurrent: data.isRecurrent,
+        recurrenceRule: data.isRecurrent ? data.recurrenceRule : undefined,
+        isVisible: data.isRecurrent ? data.isVisible : undefined,
+        isPrefilledRecurrent: data.isPrefilledRecurrent,
+        tripTime: data.isRecurrent
+          ? `${String(data.date.getHours()).padStart(2, '0')}:${String(data.date.getMinutes()).padStart(2, '0')}`
+          : undefined,
       },
       {
         onError: (error) => {
           toast.error(error.message || 'Error al publicar el viaje.');
         },
         onSuccess: (id) => {
-          toast.success('Viaje publicado con éxito.');
+          const url = `${window.location.origin}/travel/${id}`;
+          const routeDescription = vehicleData?.routeDescription?.trim();
+          const clipboardText = routeDescription
+            ? `${url}\n${routeDescription}`
+            : url;
+          void navigator.clipboard.writeText(clipboardText);
+          toast.success('Viaje publicado. Enlace copiado al portapapeles.');
           navigation({
             to: '/travel/$id',
             params: {
@@ -214,6 +237,11 @@ export default function NewTravel() {
     >
       <FormProvider {...form}>
         <form onSubmit={handleSubmit}>
+          {/* Recurrence Prefill */}
+          {recurringTrips && recurringTrips.length > 0 && (
+            <RecurrencePrefill trips={recurringTrips} />
+          )}
+
           {/* Segmented Control for Role */}
           <RoleSelector
             isDriver={!!vehicleData}
@@ -238,6 +266,9 @@ export default function NewTravel() {
           {/* Price Estimate */}
           <PriceEstimate />
 
+          {/* Recurrence Toggle */}
+          <RecurrenceSelector />
+
           {/* Main CTA Button */}
           <div className="px-4" id={TOUR_STEP_IDS.TRAVEL_FORM_PUBLISH_BUTTON}>
             <Button
@@ -253,8 +284,8 @@ export default function NewTravel() {
         </form>
       </FormProvider>{' '}
       <p className="text-center text-xs text-muted-foreground mt-4 pb-4">
-        Al publicar, aceptas que el viaje se comparta con otros usuarios de la
-        plataforma.
+        Al publicar, aceptas que los datos del viaje se comparta con otros
+        usuarios de la plataforma.
       </p>
       <Dialog open={showTourPrompt} onOpenChange={setShowTourPrompt}>
         <DialogContent className="sm:max-w-md">
@@ -317,5 +348,11 @@ const formSchema = z.object({
     .max(8, 'No puedes exceder la capacidad del vehículo'),
   price: z.number().min(0),
   newLocation: z.boolean(),
+  isRecurrent: z.boolean().default(false),
+  recurrenceRule: z.string().optional(),
+  isVisible: z.boolean().default(true),
+  isPrefilledRecurrent: z.boolean().default(false),
+  tripTime: z.string().default('08:00'),
+  isPrivate: z.boolean(),
 });
 export type FormSchema = z.infer<typeof formSchema>;

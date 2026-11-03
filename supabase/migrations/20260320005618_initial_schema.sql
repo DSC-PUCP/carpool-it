@@ -1,6 +1,7 @@
 create schema if not exists extensions;
 create extension if not exists "postgis" schema extensions;
 create extension if not exists "pg_cron";
+create extension if not exists pg_net with schema extensions;
 
 CREATE SCHEMA IF NOT EXISTS public;
 
@@ -118,7 +119,7 @@ $$;
 -- Name: get_travel_room_detail(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_travel_room_detail(p_id uuid) RETURNS TABLE(id uuid, owner_id uuid, direction public.travel_direction, datetime timestamp with time zone, recurrence_rule text, current_stop smallint, stops public.travel_room_stop_type[], driver public.driver_type)
+CREATE FUNCTION public.get_travel_room_detail(p_id uuid) RETURNS TABLE(id uuid, owner_id uuid, direction public.travel_direction, datetime timestamp with time zone, recurrence_rule text, active boolean, allow boolean, current_stop smallint, stops public.travel_room_stop_type[], driver public.driver_type)
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
@@ -129,6 +130,8 @@ BEGIN
     tr.direction,
     tr.datetime,
     tr.recurrence_rule,
+    tr.active,
+    tr.allow,
     tr.current_stop,
     (
       select array_agg(
@@ -172,8 +175,25 @@ BEGIN
       )
     ) as driver
   from travel_room tr
-  where tr.id = p_id
-    and tr.active = true;
+  where tr.id = p_id;
+END;
+$$;
+
+CREATE FUNCTION public.update_travel_room_settings(p_room_id uuid, p_active boolean, p_allow boolean) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO public, pg_temp
+    AS $$
+BEGIN
+  UPDATE public.travel_room
+  SET active = p_active,
+      allow = p_allow,
+      updated_at = now()
+  WHERE id = p_room_id
+    AND owner_id = auth.uid();
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Solo el owner puede actualizar la configuración del viaje';
+  END IF;
 END;
 $$;
 
@@ -215,15 +235,38 @@ END;$$;
 -- Name: rate_driver(uuid, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
+CREATE FUNCTION public.get_driver_rating(p_driver uuid)
+RETURNS TABLE(rating numeric, votes bigint)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path = public
+    AS $$
+  SELECT d.rating, d.votes
+  FROM public.driver d
+  WHERE d.id = p_driver;
+$$;
+
 CREATE FUNCTION public.rate_driver(p_driver uuid, p_rate integer) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
-    AS $$BEGIN
+    SET search_path = public
+    AS $$
+BEGIN
+  IF p_rate IS NULL OR p_rate < 1 OR p_rate > 5 THEN
+    RAISE EXCEPTION 'La calificación debe estar entre 1 y 5.';
+  END IF;
+
   UPDATE public.driver
-  SET 
-      rating = ((rating * votes) + p_rate) / (votes + 1),
-      votes = votes + 1
+  SET
+    rating = (
+      (COALESCE(rating, 0)::numeric * votes + p_rate)::numeric / (votes + 1)
+    )::numeric(3,2),
+    votes = votes + 1
   WHERE id = p_driver;
-END;$$;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'No se encontró el conductor para calificar.';
+  END IF;
+END;
+$$;
 
 
 --
@@ -319,6 +362,8 @@ begin
       tr.direction,
       tr.datetime,
       tr.recurrence_rule,
+      tr.active,
+      tr.allow,
       (
         select array_agg(
           row(
@@ -442,6 +487,154 @@ BEGIN
 END;
 $$;
 
+
+--
+-- Name: get_user_recurrent_travels(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_user_recurrent_travels(p_user_id uuid)
+RETURNS TABLE(id uuid, direction public.travel_direction, origin_coords double precision[], destination_coords double precision[], seats smallint, price numeric, recurrence_rule text, route_description text, is_visible boolean, trip_time time without time zone, created_at timestamp with time zone)
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    rt.id,
+    rt.direction,
+    array[st_y(rt.origin_coords), st_x(rt.origin_coords)],
+    array[st_y(rt.destination_coords), st_x(rt.destination_coords)],
+    rt.seats,
+    rt.price,
+    rt.recurrence_rule,
+    rt.route_description,
+    rt.is_visible,
+    rt.trip_time,
+    rt.created_at
+  FROM public.recurrent_travel rt
+  WHERE rt.user_id = p_user_id
+  ORDER BY rt.created_at DESC;
+END;
+$$;
+
+
+--
+-- Name: count_user_recurrent_travels(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.count_user_recurrent_travels(p_user_id uuid) RETURNS integer
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+  v_count integer;
+BEGIN
+  SELECT COUNT(*) INTO v_count
+  FROM public.recurrent_travel rt
+  WHERE rt.user_id = p_user_id;
+  RETURN v_count;
+END;
+$$;
+
+
+--
+-- Name: get_public_recurrent_travels_by_tag(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_public_recurrent_travels_by_tag(p_user_tag text)
+RETURNS TABLE(user_id uuid, user_tag text, user_avatar text, user_rating smallint, user_rides bigint, is_driver boolean, recurrent_travels jsonb)
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    p.id,
+    p.tag::text,
+    p.avatar,
+    p.rating,
+    p.rides::bigint,
+    p.is_driver,
+    COALESCE(
+      (
+        SELECT jsonb_agg(
+          jsonb_build_object(
+            'id', rt.id,
+            'direction', rt.direction,
+            'origin_coords', array[st_y(rt.origin_coords), st_x(rt.origin_coords)],
+            'destination_coords', array[st_y(rt.destination_coords), st_x(rt.destination_coords)],
+            'seats', rt.seats,
+            'price', rt.price,
+            'recurrence_rule', rt.recurrence_rule,
+            'route_description', rt.route_description,
+            'is_visible', rt.is_visible,
+            'trip_time', rt.trip_time,
+            'created_at', rt.created_at
+          )
+          ORDER BY rt.created_at DESC
+        )
+        FROM public.recurrent_travel rt
+        WHERE rt.user_id = p.id
+          AND rt.is_visible = true
+      ),
+      '[]'::jsonb
+    )
+  FROM public.profile p
+  WHERE p.tag = p_user_tag;
+END;
+$$;
+
+
+--
+-- Name: search_visible_recurrent_travels(public.travel_direction, integer, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.search_visible_recurrent_travels(
+    p_direction public.travel_direction DEFAULT NULL::public.travel_direction,
+    p_limit integer DEFAULT 20,
+    p_offset integer DEFAULT 0
+) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+declare
+  v_total int;
+  v_travels jsonb;
+begin
+  select count(*) into v_total
+  from public.recurrent_travel rt
+  where rt.is_visible = true
+    and (p_direction is null or rt.direction = p_direction);
+
+  select jsonb_agg(row_to_json(t))
+  into v_travels
+  from (
+    select
+      rt.id,
+      rt.user_id,
+      pf.tag as user_tag,
+      pf.avatar as user_avatar,
+      rt.direction,
+      array[st_y(rt.origin_coords), st_x(rt.origin_coords)] as origin_coords,
+      array[st_y(rt.destination_coords), st_x(rt.destination_coords)] as destination_coords,
+      rt.seats,
+      rt.price,
+      rt.recurrence_rule,
+      rt.route_description,
+      rt.trip_time,
+      rt.created_at
+    from public.recurrent_travel rt
+    join public.profile pf on pf.id = rt.user_id
+    where rt.is_visible = true
+      and (p_direction is null or rt.direction = p_direction)
+    order by rt.created_at desc
+    limit p_limit
+    offset p_offset
+  ) t;
+
+  return jsonb_build_object(
+    'travels', coalesce(v_travels, '[]'::jsonb),
+    'total', v_total
+  );
+end;
+$$;
+
 SET default_table_access_method = heap;
 
 --
@@ -553,6 +746,27 @@ CREATE TABLE public.travel_room_stop (
 
 
 --
+-- Name: recurrent_travel; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.recurrent_travel (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    direction public.travel_direction NOT NULL,
+    origin_coords extensions.geometry(Point,4326) NOT NULL,
+    destination_coords extensions.geometry(Point,4326) NOT NULL,
+    seats smallint DEFAULT 1 NOT NULL,
+    price numeric(4,2) DEFAULT 5.00 NOT NULL,
+    recurrence_rule text NOT NULL,
+    route_description text,
+    is_visible boolean DEFAULT true NOT NULL,
+    trip_time time without time zone DEFAULT '08:00'::time without time zone NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- TOC entry 4958 (class 2606 OID 41286)
 -- Name: driver driver_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -634,6 +848,14 @@ ALTER TABLE ONLY public.travel_room_stop
 
 
 --
+-- Name: recurrent_travel recurrent_travel_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recurrent_travel
+    ADD CONSTRAINT recurrent_travel_pkey PRIMARY KEY (id);
+
+
+--
 -- TOC entry 4944 (class 1259 OID 40095)
 -- Name: idx_location_coords_gist; Type: INDEX; Schema: public; Owner: -
 --
@@ -663,6 +885,20 @@ CREATE INDEX idx_push_device_token_user_id ON public.push_device_token USING btr
 --
 
 CREATE INDEX idx_stop_coords_gist ON public.travel_room_stop USING gist (stop_coords);
+
+
+--
+-- Name: idx_recurrent_travel_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_recurrent_travel_user_id ON public.recurrent_travel USING btree (user_id);
+
+
+--
+-- Name: idx_recurrent_travel_origin_coords_gist; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_recurrent_travel_origin_coords_gist ON public.recurrent_travel USING gist (origin_coords);
 
 
 
@@ -736,6 +972,14 @@ ALTER TABLE ONLY public.travel_room_stop
 
 ALTER TABLE ONLY public.travel_room_stop
     ADD CONSTRAINT travel_room_stop_user_id_fkey1 FOREIGN KEY (user_id) REFERENCES public.profile(id) ON DELETE CASCADE;
+
+
+--
+-- Name: recurrent_travel recurrent_travel_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recurrent_travel
+    ADD CONSTRAINT recurrent_travel_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profile(id) ON DELETE CASCADE;
 
 CREATE POLICY "Delete profile with service_role" ON public.driver FOR DELETE TO service_role USING (true);
 
@@ -811,7 +1055,9 @@ CREATE POLICY "Enable insert for users based on user_id" ON public.travel_room F
 -- Name: travel_room_stop Enable insert for users based on user_id; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Enable insert for users based on user_id" ON public.travel_room_stop FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+CREATE POLICY "Enable insert for users based on user_id" ON public.travel_room_stop FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) = user_id) AND (EXISTS ( SELECT 1
+   FROM public.travel_room tr
+  WHERE ((tr.id = travel_room_stop.room_id) AND tr.allow AND (tr.current_stop = 0)))));
 
 
 --
@@ -908,10 +1154,11 @@ CREATE POLICY "Enable update for users based on user_id" ON public.travel_room_s
 
 --
 -- TOC entry 5155 (class 3256 OID 95564)
--- Name: push_device_token Users can manage own push tokens; Type: POLICY; Schema: public; Owner: -
+-- Name: push_device_token Users can read own push tokens; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Users can manage own push tokens" ON public.push_device_token TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id)) WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+-- Writes go through public.register_push_token / public.unregister_push_token.
+CREATE POLICY "Users can read own push tokens" ON public.push_device_token FOR SELECT TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
 
 
 --
@@ -962,7 +1209,44 @@ ALTER TABLE public.travel_room ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.travel_room_stop ENABLE ROW LEVEL SECURITY;
 
+
+--
+-- Name: recurrent_travel; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.recurrent_travel ENABLE ROW LEVEL SECURITY;
+
+
+--
+-- Name: recurrent_travel Enable read access for all users; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable read access for all users" ON public.recurrent_travel FOR SELECT USING (true);
+
+
+--
+-- Name: recurrent_travel Enable insert for users based on user_id; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable insert for users based on user_id" ON public.recurrent_travel FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
+-- Name: recurrent_travel Enable update for users based on user_id; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable update for users based on user_id" ON public.recurrent_travel FOR UPDATE TO authenticated USING ((auth.uid() = user_id)) WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
+-- Name: recurrent_travel Enable delete for users based on user_id; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable delete for users based on user_id" ON public.recurrent_travel FOR DELETE TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
+
 CREATE TRIGGER trg_set_updated_at_push_device_token BEFORE UPDATE ON public.push_device_token FOR EACH ROW EXECUTE FUNCTION public.set_updated_at_push_device_token();
+
+CREATE TRIGGER trg_set_updated_at_recurrent_travel BEFORE UPDATE ON public.recurrent_travel FOR EACH ROW EXECUTE FUNCTION public.set_updated_at_push_device_token();
 
 CREATE TRIGGER trg_validate_driver BEFORE UPDATE OF is_driver ON public.profile FOR EACH ROW EXECUTE FUNCTION public.validate_driver_exists();
 
@@ -971,3 +1255,333 @@ AFTER INSERT ON auth.users
 FOR EACH ROW
 EXECUTE FUNCTION public.handle_new_user();
 
+CREATE TABLE public.travel_room_message (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    room_id uuid NOT NULL REFERENCES public.travel_room(id) ON DELETE CASCADE,
+    user_id uuid DEFAULT auth.uid() NOT NULL REFERENCES public.profile(id),
+    content text NOT NULL,
+    image_url text,
+    reply_to_id uuid REFERENCES public.travel_room_message(id) ON DELETE SET NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT travel_room_message_content_check CHECK ((char_length(content) >= 1) AND (char_length(content) <= 2000)),
+    CONSTRAINT travel_room_message_pkey PRIMARY KEY (id)
+);
+
+CREATE INDEX travel_room_message_room_id_created_at_idx
+    ON public.travel_room_message USING btree (room_id, created_at);
+
+CREATE FUNCTION public.is_room_member(_room_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.travel_room r
+    WHERE r.id = _room_id AND r.owner_id = auth.uid()
+  )
+  OR EXISTS (
+    SELECT 1
+    FROM public.travel_room_stop s
+    WHERE s.room_id = _room_id AND s.user_id = auth.uid()
+  );
+$$;
+
+CREATE FUNCTION public.broadcast_room_message() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+BEGIN
+  PERFORM realtime.send(
+    jsonb_build_object(
+      'id', NEW.id,
+      'room_id', NEW.room_id,
+      'user_id', NEW.user_id,
+      'tag', (SELECT p.tag FROM public.profile p WHERE p.id = NEW.user_id),
+      'content', NEW.content,
+      'image_url', NEW.image_url,
+      'reply_to_id', NEW.reply_to_id,
+      'created_at', NEW.created_at
+    ),
+    'message_created',
+    'room:' || NEW.room_id::text,
+    true
+  );
+  RETURN NULL;
+END;
+$$;
+
+ALTER TABLE public.travel_room_message ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "members read" ON public.travel_room_message
+    FOR SELECT TO authenticated
+    USING (public.is_room_member(room_id));
+
+CREATE POLICY "members write" ON public.travel_room_message
+    FOR INSERT TO authenticated
+    WITH CHECK (user_id = auth.uid() AND public.is_room_member(room_id));
+
+CREATE TRIGGER trg_broadcast_room_message
+AFTER INSERT ON public.travel_room_message
+FOR EACH ROW
+EXECUTE FUNCTION public.broadcast_room_message();
+
+CREATE POLICY "members receive room broadcasts" ON realtime.messages
+    FOR SELECT TO authenticated
+    USING (
+      realtime.messages.extension = 'broadcast'
+      AND (SELECT realtime.topic()) LIKE 'room:%'
+      AND public.is_room_member(
+        (split_part((SELECT realtime.topic()), ':', 2))::uuid
+      )
+    );
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('chat', 'chat', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+CREATE POLICY "chat members can read images" ON storage.objects
+FOR SELECT TO authenticated
+USING (
+  bucket_id = 'chat'
+  AND public.is_room_member((storage.foldername(name))[1]::uuid)
+);
+
+CREATE POLICY "chat members can upload images" ON storage.objects
+FOR INSERT TO authenticated
+WITH CHECK (
+  bucket_id = 'chat'
+  AND public.is_room_member((storage.foldername(name))[1]::uuid)
+);
+
+CREATE POLICY "chat members can delete images" ON storage.objects
+FOR DELETE TO authenticated
+USING (
+  bucket_id = 'chat'
+  AND public.is_room_member((storage.foldername(name))[1]::uuid)
+);
+
+    ALTER TABLE public.profile
+      ADD CONSTRAINT profile_tag_length_check
+      CHECK (char_length(btrim(tag)) BETWEEN 1 AND 25)
+      NOT VALID;
+
+    ALTER TABLE public.driver
+      ADD CONSTRAINT driver_plate_length_check
+      CHECK (plate IS NULL OR char_length(btrim(plate)) = 3),
+      ADD CONSTRAINT driver_color_not_blank_check
+      CHECK (color IS NULL OR char_length(btrim(color)) > 0),
+      ADD CONSTRAINT driver_seats_positive_check
+      CHECK (seats IS NULL OR seats >= 1),
+      ADD CONSTRAINT driver_price_nonnegative_check
+      CHECK (price >= 0),
+      ADD CONSTRAINT driver_wallet_address_format_check
+      CHECK (wallet_address IS NULL OR wallet_address ~ '^(0x)?[a-fA-F0-9]{40}$');
+
+    ALTER TABLE public.location
+      ADD CONSTRAINT location_name_length_check
+      CHECK (char_length(btrim(name)) BETWEEN 1 AND 100);
+
+    ALTER TABLE public.travel_room_stop
+      ADD CONSTRAINT travel_room_stop_seats_range_check
+      CHECK (seats BETWEEN 1 AND 8),
+      ADD CONSTRAINT travel_room_stop_price_nonnegative_check
+      CHECK (price >= 0);
+
+    ALTER TABLE public.recurrent_travel
+      ADD CONSTRAINT recurrent_travel_seats_range_check
+      CHECK (seats BETWEEN 1 AND 8),
+      ADD CONSTRAINT recurrent_travel_price_nonnegative_check
+      CHECK (price >= 0);
+
+select cron.unschedule(jobid)
+from cron.job
+where jobname = 'Clean rooms';
+
+select cron.schedule(
+  'Clean rooms',
+  '*/30 * * * *',
+  $job$
+    DELETE FROM public.travel_room
+    WHERE datetime < NOW() - INTERVAL '6 hours';
+  $job$
+);
+
+--
+-- Push notifications: token registration RPCs and the trigger that calls the
+-- push-notifications edge function through pg_net.
+--
+
+CREATE FUNCTION public.register_push_token(p_token text, p_platform text DEFAULT NULL::text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'No autenticado' USING ERRCODE = '42501';
+  END IF;
+
+  IF p_token IS NULL OR length(btrim(p_token)) < 20 OR length(p_token) > 4096 THEN
+    RAISE EXCEPTION 'Token de dispositivo inválido' USING ERRCODE = '22023';
+  END IF;
+
+  INSERT INTO public.push_device_token (user_id, token, platform, active, updated_at)
+  VALUES (v_user_id, p_token, nullif(btrim(p_platform), ''), true, now())
+  ON CONFLICT (token) DO UPDATE
+    SET user_id = excluded.user_id,
+        platform = excluded.platform,
+        active = true,
+        updated_at = now();
+
+  -- Keep at most the five most recent tokens active for this user.
+  UPDATE public.push_device_token p
+  SET active = false
+  WHERE p.user_id = v_user_id
+    AND p.active
+    AND p.id NOT IN (
+      SELECT t.id
+      FROM public.push_device_token t
+      WHERE t.user_id = v_user_id
+      ORDER BY t.updated_at DESC, t.id DESC
+      LIMIT 5
+    );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.register_push_token(text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.register_push_token(text, text) TO authenticated;
+
+
+CREATE FUNCTION public.unregister_push_token(p_token text) RETURNS void
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  UPDATE public.push_device_token
+  SET active = false
+  WHERE token = p_token
+    AND user_id = auth.uid();
+$$;
+
+REVOKE ALL ON FUNCTION public.unregister_push_token(text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.unregister_push_token(text) TO authenticated;
+
+
+CREATE FUNCTION public.get_push_webhook_secret() RETURNS text
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  SELECT decrypted_secret
+  FROM vault.decrypted_secrets
+  WHERE name = 'push_webhook_secret'
+  LIMIT 1;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_push_webhook_secret() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_push_webhook_secret() TO service_role;
+
+
+CREATE FUNCTION public.notify_push_event() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+DECLARE
+  v_url text;
+  v_secret text;
+  v_body jsonb;
+BEGIN
+  BEGIN
+    IF TG_TABLE_NAME = 'travel_room_stop' THEN
+      IF TG_OP = 'INSERT' THEN
+        v_body := jsonb_build_object(
+          'type', 'join_room',
+          'room_id', NEW.room_id,
+          'actor_user_id', NEW.user_id
+        );
+      ELSIF TG_OP = 'DELETE' THEN
+        -- Cascade deletes from travel_room must not look like a member leaving.
+        IF NOT EXISTS (
+          SELECT 1 FROM public.travel_room WHERE id = OLD.room_id
+        ) THEN
+          RETURN NULL;
+        END IF;
+
+        v_body := jsonb_build_object(
+          'type', 'leave_room',
+          'room_id', OLD.room_id,
+          'actor_user_id', OLD.user_id
+        );
+      END IF;
+    ELSIF TG_TABLE_NAME = 'travel_room_message' AND TG_OP = 'INSERT' THEN
+      v_body := jsonb_build_object(
+        'type', 'chat_message',
+        'room_id', NEW.room_id,
+        'actor_user_id', NEW.user_id,
+        'message_id', NEW.id
+      );
+    ELSIF TG_TABLE_NAME = 'travel_room' AND TG_OP = 'UPDATE' THEN
+      v_body := jsonb_build_object(
+        'type', 'next_stop',
+        'room_id', NEW.id,
+        'actor_user_id', auth.uid(),
+        'current_stop', NEW.current_stop
+      );
+    END IF;
+
+    IF v_body IS NULL THEN
+      RETURN NULL;
+    END IF;
+
+    SELECT decrypted_secret INTO v_url
+    FROM vault.decrypted_secrets
+    WHERE name = 'push_function_url'
+    LIMIT 1;
+
+    SELECT decrypted_secret INTO v_secret
+    FROM vault.decrypted_secrets
+    WHERE name = 'push_webhook_secret'
+    LIMIT 1;
+
+    IF v_url IS NULL OR v_secret IS NULL THEN
+      RETURN NULL;
+    END IF;
+
+    PERFORM net.http_post(
+      url := v_url,
+      body := v_body,
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'x-webhook-secret', v_secret
+      )
+    );
+  EXCEPTION WHEN others THEN
+    -- Notifications must never roll back the user's transaction.
+    RAISE WARNING 'notify_push_event: %', SQLERRM;
+  END;
+
+  RETURN NULL;
+END;
+$$;
+
+
+CREATE TRIGGER trg_push_join_room AFTER INSERT ON public.travel_room_stop FOR EACH ROW EXECUTE FUNCTION public.notify_push_event();
+
+CREATE TRIGGER trg_push_leave_room AFTER DELETE ON public.travel_room_stop FOR EACH ROW EXECUTE FUNCTION public.notify_push_event();
+
+CREATE TRIGGER trg_push_chat_message AFTER INSERT ON public.travel_room_message FOR EACH ROW EXECUTE FUNCTION public.notify_push_event();
+
+CREATE TRIGGER trg_push_next_stop AFTER UPDATE OF current_stop ON public.travel_room FOR EACH ROW WHEN (old.current_stop IS DISTINCT FROM new.current_stop) EXECUTE FUNCTION public.notify_push_event();
+
+select cron.unschedule(jobid)
+from cron.job
+where jobname = 'Clean push tokens';
+
+select cron.schedule(
+  'Clean push tokens',
+  '0 4 * * 0',
+  $job$
+    DELETE FROM public.push_device_token
+    WHERE (active = false AND updated_at < NOW() - INTERVAL '30 days')
+       OR updated_at < NOW() - INTERVAL '60 days';
+  $job$
+);

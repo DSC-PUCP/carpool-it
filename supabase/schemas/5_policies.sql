@@ -72,7 +72,9 @@ CREATE POLICY "Enable insert for users based on user_id" ON public.travel_room F
 -- Name: travel_room_stop Enable insert for users based on user_id; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Enable insert for users based on user_id" ON public.travel_room_stop FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+CREATE POLICY "Enable insert for users based on user_id" ON public.travel_room_stop FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) = user_id) AND (EXISTS ( SELECT 1
+   FROM public.travel_room tr
+  WHERE ((tr.id = travel_room_stop.room_id) AND tr.allow AND (tr.current_stop = 0)))));
 
 
 --
@@ -169,10 +171,11 @@ CREATE POLICY "Enable update for users based on user_id" ON public.travel_room_s
 
 --
 -- TOC entry 5155 (class 3256 OID 95564)
--- Name: push_device_token Users can manage own push tokens; Type: POLICY; Schema: public; Owner: -
+-- Name: push_device_token Users can read own push tokens; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Users can manage own push tokens" ON public.push_device_token TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id)) WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+-- Writes go through public.register_push_token / public.unregister_push_token.
+CREATE POLICY "Users can read own push tokens" ON public.push_device_token FOR SELECT TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
 
 
 --
@@ -222,3 +225,80 @@ ALTER TABLE public.travel_room ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.travel_room_stop ENABLE ROW LEVEL SECURITY;
+
+
+--
+-- Name: recurrent_travel; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.recurrent_travel ENABLE ROW LEVEL SECURITY;
+
+
+--
+-- Name: recurrent_travel Enable read access for all users; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable read access for all users" ON public.recurrent_travel FOR SELECT USING (true);
+
+
+--
+-- Name: recurrent_travel Enable insert for users based on user_id; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable insert for users based on user_id" ON public.recurrent_travel FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
+-- Name: recurrent_travel Enable update for users based on user_id; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable update for users based on user_id" ON public.recurrent_travel FOR UPDATE TO authenticated USING ((auth.uid() = user_id)) WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
+-- Name: recurrent_travel Enable delete for users based on user_id; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable delete for users based on user_id" ON public.recurrent_travel FOR DELETE TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
+
+ALTER TABLE public.travel_room_message ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "members read" ON public.travel_room_message FOR SELECT TO authenticated
+    USING (public.is_room_member(room_id));
+
+CREATE POLICY "members write" ON public.travel_room_message FOR INSERT TO authenticated
+    WITH CHECK ((user_id = auth.uid()) AND public.is_room_member(room_id));
+
+CREATE POLICY "members receive room broadcasts" ON realtime.messages FOR SELECT TO authenticated
+    USING (
+      realtime.messages.extension = 'broadcast'
+      AND (SELECT realtime.topic()) LIKE 'room:%'
+      AND public.is_room_member(
+        (split_part((SELECT realtime.topic()), ':', 2))::uuid
+      )
+    );
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('chat', 'chat', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+CREATE POLICY "chat members can read images" ON storage.objects
+FOR SELECT TO authenticated
+USING (
+  bucket_id = 'chat'
+  AND public.is_room_member((storage.foldername(name))[1]::uuid)
+);
+
+CREATE POLICY "chat members can upload images" ON storage.objects
+FOR INSERT TO authenticated
+WITH CHECK (
+  bucket_id = 'chat'
+  AND public.is_room_member((storage.foldername(name))[1]::uuid)
+);
+
+CREATE POLICY "chat members can delete images" ON storage.objects
+FOR DELETE TO authenticated
+USING (
+  bucket_id = 'chat'
+  AND public.is_room_member((storage.foldername(name))[1]::uuid)
+);

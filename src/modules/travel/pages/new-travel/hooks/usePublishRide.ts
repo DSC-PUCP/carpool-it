@@ -15,6 +15,9 @@ export const usePublishRide = () => {
       queryClient.invalidateQueries({
         queryKey: [QueryKeys.ACTIVE_RIDE],
       });
+      queryClient.invalidateQueries({
+        queryKey: [QueryKeys.RECURRENTS],
+      });
     },
   });
 };

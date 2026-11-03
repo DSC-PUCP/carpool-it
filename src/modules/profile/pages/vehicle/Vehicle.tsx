@@ -11,16 +11,14 @@ import {
   TopStackAction,
   TopStackTitle,
 } from '@/components/layout/top-stack/TopStack';
-import { useTour } from '@/components/tour';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useVehicle } from '@/hooks/use-vehicle';
 import getLocalStorage from '@/lib/localStorage';
-import { TOUR_STEP_IDS } from '@/lib/tour-constants';
-import { TOUR_FLOWS } from '@/lib/tours';
+import { TOUR_STEP_IDS, TOUR_STORAGE_KEYS } from '@/modules/tour/constants';
+import { useTour } from '@/modules/tour/engine/TourProvider';
+import { TOUR_FLOWS } from '@/modules/tour/flows';
 import { useUpdateVehicle } from './hooks/useUpdateVehicle';
-
-const DRIVER_TOUR_PENDING_KEY = 'carpool_driver_tour_pending';
 
 export default function Vehicle() {
   const { mutate, isPending } = useUpdateVehicle();
@@ -40,10 +38,11 @@ export default function Vehicle() {
     if (!mounted) return;
 
     const ls = getLocalStorage();
-    const driverTourPending = ls.getItem(DRIVER_TOUR_PENDING_KEY) === '1';
+    const driverTourPending =
+      ls.getItem(TOUR_STORAGE_KEYS.DRIVER_ONBOARDING_PENDING) === '1';
 
     if (driverTourPending) {
-      ls.removeItem(DRIVER_TOUR_PENDING_KEY);
+      ls.removeItem(TOUR_STORAGE_KEYS.DRIVER_ONBOARDING_PENDING);
       const flow = TOUR_FLOWS.driverOnboarding;
       setSteps([...flow.steps]);
       setIsTourCompleted(false);

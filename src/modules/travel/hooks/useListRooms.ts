@@ -7,8 +7,10 @@ import { TravelService } from '../services';
 export const useListRooms = (defaultFilters: Partial<RideListFilters>) => {
   const { filters } = useFilters('/_layout/_auth/home');
 
-  const resolvedFilters =
-    Object.keys(filters).length > 0 ? filters : defaultFilters;
+  const urlOverrides = Object.fromEntries(
+    Object.entries(filters).filter(([, v]) => v !== undefined)
+  );
+  const resolvedFilters = { ...defaultFilters, ...urlOverrides };
 
   const limit = resolvedFilters.limit ?? 5;
 
@@ -18,6 +20,6 @@ export const useListRooms = (defaultFilters: Partial<RideListFilters>) => {
       TravelService.listRooms({ ...resolvedFilters, limit, offset: pageParam }),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.metadata.next,
-    staleTime: 1000 * 10,
+    staleTime: 1000 * 15,
   });
 };

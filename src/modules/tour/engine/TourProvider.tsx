@@ -69,7 +69,16 @@ function toTargetList(selector: TourSelector): readonly TourTarget[] {
 
 function isVisibleElement(element: HTMLElement) {
   const rect = element.getBoundingClientRect();
-  return rect.width > 0 && rect.height > 0;
+  if (rect.width === 0 || rect.height === 0) {
+    return false;
+  }
+
+  // `display: none` subtrees still report a rect in some browsers.
+  if (typeof element.checkVisibility === 'function') {
+    return element.checkVisibility();
+  }
+
+  return true;
 }
 
 /**

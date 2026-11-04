@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import z from 'zod';
 import { QueryKeys } from '@/const/query-keys';
 import { getDirectionByHour, getNowInLima } from '@/lib/utils';
+import { useTourFlow } from '@/modules/tour/hooks/use-tour-flow';
 import { TravelService } from '@/modules/travel/services';
 import Travel from '@/modules/travel/Travel';
 
@@ -89,5 +90,7 @@ export const Route = createFileRoute('/_layout/_auth/home')({
 });
 
 function RouteComponent() {
+  useTourFlow('home', { autoStart: true, autoStartDelay: 800 });
+
   return <Travel />;
 }

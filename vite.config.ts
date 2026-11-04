@@ -14,7 +14,11 @@ const config = defineConfig({
         name: 'ssr',
       },
     }),
-    tanstackStart(),
+    tanstackStart({
+      prerender: {
+        enabled: true,
+      }
+    }),
     viteReact({ compiler: true}),
   ],
   resolve: {

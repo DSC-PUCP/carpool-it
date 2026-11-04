@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useProfile } from '@/hooks/use-profile';
 import { AuthService } from '@/modules/auth/services';
+import { TOUR_STEP_IDS } from '@/modules/tour/constants';
 
 export default function MenuItems() {
   const navigate = useNavigate();
@@ -53,6 +54,7 @@ export default function MenuItems() {
       {/* Locations */}
       <Button
         variant="outline"
+        id={TOUR_STEP_IDS.PROFILE_LOCATIONS}
         className="w-full flex items-center gap-4 p-4 rounded-2xl backdrop-filter backdrop-blur-sm h-auto justify-start text-left group"
         onClick={() =>
           navigate({
@@ -128,6 +130,7 @@ export default function MenuItems() {
 
       <Button
         variant="outline"
+        id={TOUR_STEP_IDS.PROFILE_SUPPORT}
         className="w-full flex items-center gap-4 p-4 rounded-2xl backdrop-filter backdrop-blur-sm h-auto justify-start text-left group"
         onClick={() =>
           navigate({

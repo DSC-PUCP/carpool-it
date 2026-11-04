@@ -77,7 +77,7 @@ export default function RideCard(
   const originLabel = isToCampus ? relevantLabel : universityLabel;
   const destinationLabel = isToCampus ? universityLabel : relevantLabel;
 
-  const totalSeats = driver?.seats ?? 0;
+  const totalSeats = driverStop?.seats ?? driver?.seats ?? 0;
   const occupiedSeats = stops.reduce((acc, stop) => {
     return stop.userRole === 'passenger' ? acc + stop.seats : acc;
   }, 0);

@@ -10,42 +10,46 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import getLocalStorage from '@/lib/localStorage';
-
-const WELCOME_KEY = 'carpool_welcome_shown';
-const WELCOME_VERSION = '2026-09-27';
+import { TOUR_STORAGE_KEYS } from '@/modules/tour/constants';
+import { notifyTourGateChange } from '@/modules/tour/hooks/use-tour-flow';
 
 export default function WelcomeDialog() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const ls = getLocalStorage();
-    if (ls.getItem(WELCOME_KEY) !== WELCOME_VERSION) {
-      setOpen(true);
-    }
+    setOpen(getLocalStorage().getItem(TOUR_STORAGE_KEYS.WELCOME) !== '1');
   }, []);
 
   const handleClose = () => {
     const ls = getLocalStorage();
-    ls.setItem(WELCOME_KEY, WELCOME_VERSION);
+    ls.setItem(TOUR_STORAGE_KEYS.WELCOME, '1');
+    // Legacy flag read by the travel-form tour gate.
+    ls.setItem(TOUR_STORAGE_KEYS.ONBOARDING_LEGACY, '1');
     setOpen(false);
+    notifyTourGateChange();
   };
 
   return (
     <Dialog
       open={open}
-      onOpenChange={(v) => {
-        if (!v) handleClose();
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          handleClose();
+        }
       }}
     >
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>¡Gracias por unirte a Carpool It! 🚀</DialogTitle>
+          <DialogTitle>¡Bienvenido a Carpool It!</DialogTitle>
         </DialogHeader>
         <div className="space-y-3 text-sm leading-6 text-muted-foreground">
-          <p>Para una mejor experiencia:</p>
+          <p>
+            Antes de arrancar, te recomendamos dos cosas para aprovechar mejor
+            la app:
+          </p>
           <ul className="list-disc space-y-2 pl-5">
             <li>
-              Únete a los grupos de WhatsApp a través de{' '}
+              Unirte a los grupos de WhatsApp a través de{' '}
               <a
                 href="https://forms.gle/vYLeDmHUxX3Z73oC6"
                 target="_blank"
@@ -58,14 +62,14 @@ export default function WelcomeDialog() {
               .
             </li>
             <li>
-              Instala o agrega el app a tu celular desde{' '}
+              Instala o agrega la app a tu celular desde{' '}
               <Link
                 to="/profile/asisstance"
                 hash="agregar-a-pantalla-de-inicio"
                 onClick={handleClose}
                 className="font-medium text-primary underline underline-offset-4 transition-opacity hover:opacity-80"
               >
-                asístencia
+                asistencia
               </Link>{' '}
               y sigue los pasos.
             </li>

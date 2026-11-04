@@ -26,7 +26,7 @@ export default function RideCardOg(props: RideCardOgProps) {
   const relevantLabel = closestRef?.label ?? 'Ubicación';
   const originLabel = isToCampus ? relevantLabel : universityLabel;
   const destinationLabel = isToCampus ? universityLabel : relevantLabel;
-  const totalSeats = driverStop?.seats ?? 0;
+  const totalSeats = driverStop?.seats ?? driver?.seats ?? 0;
   const occupiedSeats = stops.reduce(
     (total, stop) =>
       stop.userRole === 'passenger' ? total + stop.seats : total,

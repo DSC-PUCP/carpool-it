@@ -171,10 +171,11 @@ CREATE POLICY "Enable update for users based on user_id" ON public.travel_room_s
 
 --
 -- TOC entry 5155 (class 3256 OID 95564)
--- Name: push_device_token Users can manage own push tokens; Type: POLICY; Schema: public; Owner: -
+-- Name: push_device_token Users can read own push tokens; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Users can manage own push tokens" ON public.push_device_token TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id)) WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+-- Writes go through public.register_push_token / public.unregister_push_token.
+CREATE POLICY "Users can read own push tokens" ON public.push_device_token FOR SELECT TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
 
 
 --
@@ -277,3 +278,27 @@ CREATE POLICY "members receive room broadcasts" ON realtime.messages FOR SELECT 
       )
     );
 
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('chat', 'chat', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+CREATE POLICY "chat members can read images" ON storage.objects
+FOR SELECT TO authenticated
+USING (
+  bucket_id = 'chat'
+  AND public.is_room_member((storage.foldername(name))[1]::uuid)
+);
+
+CREATE POLICY "chat members can upload images" ON storage.objects
+FOR INSERT TO authenticated
+WITH CHECK (
+  bucket_id = 'chat'
+  AND public.is_room_member((storage.foldername(name))[1]::uuid)
+);
+
+CREATE POLICY "chat members can delete images" ON storage.objects
+FOR DELETE TO authenticated
+USING (
+  bucket_id = 'chat'
+  AND public.is_room_member((storage.foldername(name))[1]::uuid)
+);

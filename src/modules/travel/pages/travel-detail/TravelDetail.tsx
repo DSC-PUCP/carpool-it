@@ -20,6 +20,7 @@ import { QueryKeys } from '@/const/query-keys';
 import { useLocations } from '@/hooks/use-locations';
 import { useProfile } from '@/hooks/use-profile';
 import { AuthService } from '@/modules/auth/services';
+import NotificationsPromptBanner from '@/modules/notifications/components/NotificationsPromptBanner';
 import { ProfileService } from '@/modules/profile/services';
 import { TravelService } from '@/modules/travel/services';
 import RideCard from '../../components/ride-card/RideCard';
@@ -47,7 +48,6 @@ import {
 } from './utils';
 
 export default function TravelDetail() {
-  const navigate = useNavigate();
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
   const [isRateDialogOpen, setIsRateDialogOpen] = useState(false);
   const [isDriverRoleDialogOpen, setIsDriverRoleDialogOpen] = useState(false);
@@ -157,19 +157,12 @@ export default function TravelDetail() {
 
     const newOwnerId = getOwnerTransferCandidate(travel, user.id, isOwner);
 
-    leaveRide(
-      {
-        roomId: travel.id,
-        userId: user.id,
-        newOwnerId,
-        onlyOne: travel.stops.length === 1,
-      },
-      {
-        onSuccess: () => {
-          navigate({ to: '/home' });
-        },
-      }
-    );
+    leaveRide({
+      roomId: travel.id,
+      userId: user.id,
+      newOwnerId,
+      onlyOne: travel.stops.length === 1,
+    });
   };
 
   const isLoading = isJoining || isLeaving;
@@ -217,6 +210,8 @@ export default function TravelDetail() {
             }
           />
         </div>
+
+        {isMember && <NotificationsPromptBanner />}
 
         <DriverRoleDialog
           open={isDriverRoleDialogOpen}
@@ -326,7 +321,11 @@ export default function TravelDetail() {
 
         {isMember && user && hasMultipleParticipants && (
           <div className="flex-1 flex flex-col min-h-0 rounded-xl border">
-            <TravelChat roomId={travel.id} currentUserId={user.id} />
+            <TravelChat
+              roomId={travel.id}
+              currentUserId={user.id}
+              participants={travel.stops}
+            />
           </div>
         )}
       </main>

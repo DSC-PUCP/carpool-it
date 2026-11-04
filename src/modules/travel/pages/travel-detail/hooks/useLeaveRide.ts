@@ -11,12 +11,12 @@ export const useLeaveRide = () => {
     mutationFn: TravelService.quitRoom,
     onSuccess: (_, variables) => {
       toast.success('Has salido del viaje exitosamente');
+      navigate({ to: '/home', search: {} });
       queryClient.invalidateQueries({
         queryKey: [QueryKeys.TRAVEL_DETAIL, variables.roomId],
       });
       queryClient.invalidateQueries({ queryKey: [QueryKeys.TRAVEL] });
       queryClient.invalidateQueries({ queryKey: [QueryKeys.ACTIVE_RIDE] });
-      navigate({ to: '/home', search: {} });
     },
     onError: (error) => {
       toast.error(error.message);

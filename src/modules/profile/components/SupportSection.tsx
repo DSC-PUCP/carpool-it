@@ -1,3 +1,4 @@
+import { useRouterState } from '@tanstack/react-router';
 import { EllipsisVertical, ExternalLink, Share, Share2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import previewTravel from '@/assets/images/preview-travel.webp';
@@ -11,13 +12,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function SupportSection() {
   const [openItem, setOpenItem] = useState('que-es-carpool-it');
+  const hash = useRouterState({ select: (state) => state.location.hash });
 
   useEffect(() => {
-    const hash = window.location.hash.slice(1);
-    if (hash) {
-      setOpenItem(hash);
+    const value = hash.replace(/^#/, '');
+    if (value) {
+      setOpenItem(value);
     }
-  }, []);
+  }, [hash]);
 
   return (
     <section id="asistencia" className="scroll-mt-24 px-4 pb-10">

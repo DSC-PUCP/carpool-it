@@ -12,14 +12,6 @@ interface RealtimeChatProps {
   currentUserId: string;
 }
 
-/**
- * Realtime chat component
- * @param roomName - The name of the room to join. Each room is a unique chat.
- * @param username - The username of the user
- * @param onMessage - The callback function to handle the messages. Useful if you want to store the messages in a database.
- * @param messages - The messages to display in the chat. Useful if you want to display messages from a database.
- * @returns The chat component
- */
 export const RealtimeChat = ({ roomId, currentUserId }: RealtimeChatProps) => {
   const { containerRef, scrollToBottom } = useChatScroll();
 
@@ -27,7 +19,6 @@ export const RealtimeChat = ({ roomId, currentUserId }: RealtimeChatProps) => {
   const [newMessage, setNewMessage] = useState('');
 
   useEffect(() => {
-    // Scroll to bottom whenever messages change
     if (messages.length > 0) scrollToBottom();
   }, [messages, scrollToBottom]);
 

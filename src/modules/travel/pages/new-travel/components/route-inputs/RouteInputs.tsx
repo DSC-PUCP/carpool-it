@@ -10,19 +10,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Field, FieldError } from '@/components/ui/field';
 import { Label } from '@/components/ui/label';
 import { useLocations } from '@/hooks/use-locations';
+import { TOUR_STEP_IDS } from '@/modules/tour/constants';
 import MapSelector from '@/modules/travel/pages/new-travel/components/MapDialog';
 import { isCampusLocation } from '@/modules/travel/utils';
 import type { FormSchema } from '../../NewTravel';
 
 export default function RouteInputs() {
   const form = useFormContext<FormSchema>();
-  const { data: locations } = useLocations();
   const handleToggle = () => {
     const originVal = { ...form.getValues('origin') };
     form.setValue('origin', { ...form.getValues('destination') });
     form.setValue('destination', originVal);
   };
-  const { destination, origin, newLocation } = useWatch({
+  const { destination, origin } = useWatch({
     control: form.control,
   });
 
@@ -44,12 +44,17 @@ export default function RouteInputs() {
               <Label>
                 <Typography variant="muted">Saliendo de</Typography>
               </Label>
-              <LocationField name="origin" showFavorite={!originCampus} />
+              <LocationField
+                name="origin"
+                showFavorite={!originCampus}
+                tourId={TOUR_STEP_IDS.TRAVEL_FORM_ORIGIN}
+              />
             </div>
           </div>
 
           <div className="m-auto flex flex-col items-center gap-1">
             <Button
+              id={TOUR_STEP_IDS.TRAVEL_FORM_SWAP}
               variant="outline"
               type="button"
               onClick={handleToggle}
@@ -73,7 +78,11 @@ export default function RouteInputs() {
               <Label>
                 <Typography variant="muted">Con destino a</Typography>
               </Label>
-              <LocationField name="destination" showFavorite={originCampus} />
+              <LocationField
+                name="destination"
+                showFavorite={originCampus}
+                tourId={TOUR_STEP_IDS.TRAVEL_FORM_DESTINATION}
+              />
             </div>
           </div>
         </div>
@@ -85,9 +94,11 @@ export default function RouteInputs() {
 function LocationField({
   name,
   showFavorite,
+  tourId,
 }: {
   name: 'origin' | 'destination';
   showFavorite: boolean | undefined;
+  tourId?: string;
 }) {
   const form = useFormContext<FormSchema>();
   const { data: locations } = useLocations();
@@ -102,7 +113,7 @@ function LocationField({
       name={name}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid}>
-          <ButtonGroup>
+          <ButtonGroup id={tourId}>
             <MapSelector
               position={
                 Object.keys(field.value ?? {}).length

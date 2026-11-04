@@ -17,6 +17,14 @@ const firebaseConfig = {
 
 export const firebaseVapidKey = env.VITE_FIREBASE_VAPID_KEY;
 
+/**
+ * Client Firebase config, also used to build the service worker query string so
+ * `public/firebase-messaging-sw.js` does not hardcode it.
+ */
+export function firebaseClientConfig() {
+  return { ...firebaseConfig };
+}
+
 export function getFirebaseApp() {
   return getApps().length ? getApp() : initializeApp(firebaseConfig);
 }
@@ -26,11 +34,4 @@ export async function getFirebaseMessaging(): Promise<Messaging | null> {
   if (!(await isMessagingSupported())) return null;
 
   return getMessaging(getFirebaseApp());
-}
-
-export async function getFirebaseMessagingServiceWorker() {
-  if (typeof window === 'undefined') return null;
-  if (!('serviceWorker' in navigator)) return null;
-
-  return navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
 }

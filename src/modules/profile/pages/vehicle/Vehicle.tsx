@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from '@tanstack/react-router';
 import { ArrowLeft, Save } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import z from 'zod';
@@ -13,15 +14,37 @@ import {
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useVehicle } from '@/hooks/use-vehicle';
+import getLocalStorage from '@/lib/localStorage';
+import { TOUR_STEP_IDS, TOUR_STORAGE_KEYS } from '@/modules/tour/constants';
+import { useTourStart } from '@/modules/tour/hooks/use-tour-flow';
 import { useUpdateVehicle } from './hooks/useUpdateVehicle';
 
 export default function Vehicle() {
   const { mutate, isPending } = useUpdateVehicle();
   const { data: vehicle } = useVehicle();
+  const startTour = useTourStart();
+  const [mounted, setMounted] = useState(false);
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: vehicle ?? undefined,
   });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    const ls = getLocalStorage();
+    const driverTourPending =
+      ls.getItem(TOUR_STORAGE_KEYS.DRIVER_ONBOARDING_PENDING) === '1';
+
+    if (driverTourPending) {
+      ls.removeItem(TOUR_STORAGE_KEYS.DRIVER_ONBOARDING_PENDING);
+      setTimeout(() => startTour('driverOnboarding'), 300);
+    }
+  }, [mounted, startTour]);
 
   const onSubmit = form.handleSubmit((data) => {
     mutate(data, {
@@ -48,7 +71,11 @@ export default function Vehicle() {
         <FormProvider {...form}>
           <form onSubmit={onSubmit} className="flex flex-col gap-4">
             <DriverForm />
-            <Button type="submit" disabled={isPending}>
+            <Button
+              type="submit"
+              disabled={isPending}
+              id={TOUR_STEP_IDS.VEHICLE_FORM_SAVE}
+            >
               {isPending && <Spinner />}
               <Save />
               Guardar cambios

@@ -8,6 +8,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { QueryKeys } from '@/const/query-keys';
 import { AuthService } from '@/modules/auth/services';
 import { ProfileService } from '@/modules/profile/services';
+import { TourProvider } from '@/modules/tour/engine/TourProvider';
 import { TravelService } from '@/modules/travel/services';
 
 export const Route = createFileRoute('/_layout')({
@@ -47,15 +48,23 @@ export const Route = createFileRoute('/_layout')({
       onSuccess: () => navigate({ to: '/sign-in' }),
     });
 
+    const handleTourComplete = (shouldReload: boolean) => {
+      if (shouldReload) {
+        window.location.reload();
+      }
+    };
+
     return (
       <SidebarProvider>
-        {user && <AppSidebar {...user} onLogout={mutate} />}
-        {user && <WelcomeDialog />}
-        <GlowBackground>
-          <AppLayout>
-            <Outlet />
-          </AppLayout>
-        </GlowBackground>
+        <TourProvider onComplete={handleTourComplete}>
+          {user && <AppSidebar {...user} onLogout={mutate} />}
+          {user && <WelcomeDialog />}
+          <GlowBackground>
+            <AppLayout>
+              <Outlet />
+            </AppLayout>
+          </GlowBackground>
+        </TourProvider>
       </SidebarProvider>
     );
   },

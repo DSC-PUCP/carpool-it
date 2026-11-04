@@ -1,6 +1,7 @@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFilters } from '@/hooks/use-filters';
 import { getDirectionByHour, getNowInLima } from '@/lib/utils';
+import { TOUR_STEP_IDS } from '@/modules/tour/constants';
 
 export default function SegmentedControl() {
   const { filters, setFilters } = useFilters('/_layout/_auth/home');
@@ -14,6 +15,7 @@ export default function SegmentedControl() {
 
   return (
     <Tabs
+      id={TOUR_STEP_IDS.HOME_DIRECTION}
       value={currentDirection}
       onValueChange={(val) =>
         setFilters({ direction: val as 'to_campus' | 'from_campus' })

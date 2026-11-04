@@ -11,6 +11,7 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty';
 import { cn } from '@/lib/utils';
+import { TOUR_STEP_IDS } from '@/modules/tour/constants';
 import FilterChips from './components/filter-chips/FilterChips';
 import RecurrentRideCard, {
   type RecurrentCardData,
@@ -66,7 +67,10 @@ export default function Travel() {
         <UserHeader {...user} />
       </div>
 
-      <main className="flex flex-col flex-1 overflow-hidden z-10 relative">
+      <main
+        id={TOUR_STEP_IDS.HOME_FEED}
+        className="flex flex-col flex-1 overflow-hidden z-10 relative"
+      >
         <div className="shrink-0">
           <FilterChips />
         </div>
@@ -77,7 +81,6 @@ export default function Travel() {
           )}
         >
           {onlyRecurrents ? (
-            // Recurrents-only view
             isLoadingRecurrents ? (
               ['sk-1', 'sk-2', 'sk-3'].map((key) => (
                 <RideCardSkeleton key={key} />

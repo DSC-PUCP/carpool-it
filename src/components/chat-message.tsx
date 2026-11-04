@@ -1,4 +1,4 @@
-import { MapPin, MessageCircle } from 'lucide-react';
+import { MapPin, MessageCircle, Reply } from 'lucide-react';
 import type { ChatMessage } from '@/hooks/use-realtime-chat';
 import { cn } from '@/lib/utils';
 
@@ -34,15 +34,23 @@ interface ChatMessageItemProps {
   message: ChatMessage;
   isOwnMessage: boolean;
   showHeader: boolean;
+  repliedMessage?: ChatMessage;
+  onReply?: (message: ChatMessage) => void;
 }
 
 export const ChatMessageItem = ({
   message,
   isOwnMessage,
   showHeader,
+  repliedMessage,
+  onReply,
 }: ChatMessageItemProps) => {
-  const phone = extractPhone(message.content);
   const hasLocation = !!message.location;
+  const phone = hasLocation ? null : extractPhone(message.content);
+  const visibleContent = hasLocation
+    ? message.content.replace(/\s*\[loc:.*?\]/, '')
+    : message.content;
+  const isImageOnly = Boolean(message.imageUrl && message.content === 'Imagen');
 
   return (
     <div
@@ -71,16 +79,40 @@ export const ChatMessageItem = ({
         )}
         <div
           className={cn(
-            'py-2 px-3 rounded-xl text-sm w-fit',
+            'rounded-xl text-sm w-fit',
+            isImageOnly ? 'overflow-hidden p-0' : 'px-3 py-2',
             isOwnMessage
               ? 'bg-primary text-primary-foreground'
               : 'bg-muted text-foreground'
           )}
         >
-          {hasLocation
-            ? message.content.replace(/\s*\[loc:.*?\]/, '')
-            : message.content}
+          {repliedMessage && (
+            <div className="mb-1 rounded border-l-2 border-current/50 px-2 py-1 text-xs opacity-75">
+              <span className="font-medium">{repliedMessage.user.name}</span>
+              <p className="truncate">{repliedMessage.content}</p>
+            </div>
+          )}
+          {message.imageUrl && (
+            <img
+              src={message.imageUrl}
+              alt="Imagen compartida en el chat"
+              className="block max-h-64 max-w-full object-cover"
+              loading="lazy"
+            />
+          )}
+          {!isImageOnly && visibleContent}
         </div>
+
+        {onReply && (
+          <button
+            type="button"
+            className="flex items-center gap-1 self-start px-2 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => onReply(message)}
+          >
+            <Reply className="size-3" />
+            Responder
+          </button>
+        )}
 
         {phone && (
           <MessageAction

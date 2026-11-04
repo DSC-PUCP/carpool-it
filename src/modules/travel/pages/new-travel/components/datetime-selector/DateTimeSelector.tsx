@@ -8,6 +8,7 @@ import { Field } from '@/components/ui/field';
 import { Label } from '@/components/ui/label';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getRelativeDayLabelInTimeZone, LIMA_TIME_ZONE } from '@/lib/utils';
+import { TOUR_STEP_IDS } from '@/modules/tour/constants';
 import { isCampusLocation } from '@/modules/travel/utils';
 import type { FormSchema } from '../../NewTravel';
 
@@ -53,6 +54,7 @@ export default function DateTimeSelector() {
           return (
             <>
               <Card
+                id={TOUR_STEP_IDS.TRAVEL_FORM_DATE}
                 className="relative flex-1 rounded-2xl p-4 cursor-pointer"
                 onClick={() => {
                   if (!isMobile) {
@@ -71,6 +73,7 @@ export default function DateTimeSelector() {
                     </div>
                     <input
                       ref={dateInputRef}
+                      id={TOUR_STEP_IDS.TRAVEL_FORM_DATE_INPUT}
                       type="date"
                       className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                       value={toDateValue(value)}
@@ -99,6 +102,7 @@ export default function DateTimeSelector() {
               </Card>
 
               <Card
+                id={TOUR_STEP_IDS.TRAVEL_FORM_TIME}
                 className="relative flex-1 rounded-2xl p-4 cursor-pointer"
                 onClick={() => {
                   if (!isMobile) {
@@ -120,6 +124,7 @@ export default function DateTimeSelector() {
                     </div>
                     <input
                       ref={timeInputRef}
+                      id={TOUR_STEP_IDS.TRAVEL_FORM_TIME_INPUT}
                       type="time"
                       className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                       step={300}

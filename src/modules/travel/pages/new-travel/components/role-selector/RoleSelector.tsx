@@ -1,8 +1,11 @@
 import { useRouteContext } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { DriverVehicle } from '@/core/models';
+import getLocalStorage from '@/lib/localStorage';
+import { TOUR_STEP_IDS, TOUR_STORAGE_KEYS } from '@/modules/tour/constants';
+import { useTourStart } from '@/modules/tour/hooks/use-tour-flow';
 import type { FormSchema } from '../../NewTravel';
 import DialogDriver from './DialogDriver';
 
@@ -18,6 +21,32 @@ export default function RoleSelector({
   const { vehicleData } = useRouteContext({ from: '/_layout' });
   const [open, setOpen] = useState(false);
   const form = useFormContext<FormSchema>();
+  const startTour = useTourStart();
+
+  const handleDriverSubmit = async (data: DriverVehicle) => {
+    await setDriver(data);
+    form.setValue('role', 'offer');
+    form.setValue('price', data.price);
+    form.setValue('seats', data.seats);
+    setOpen(false);
+
+    setTimeout(() => {
+      getLocalStorage().setItem(TOUR_STORAGE_KEYS.DRIVER_PUBLISH, '1');
+      startTour('driverPublish');
+    }, 500);
+  };
+
+  useEffect(() => {
+    const handleAdvanceTour = () => {
+      form.setValue('role', 'offer');
+      getLocalStorage().setItem(TOUR_STORAGE_KEYS.DRIVER_PUBLISH, '1');
+      setTimeout(() => startTour('driverPublish'), 300);
+    };
+
+    window.addEventListener('advanceDriverTour', handleAdvanceTour);
+    return () =>
+      window.removeEventListener('advanceDriverTour', handleAdvanceTour);
+  }, [form, startTour]);
 
   return (
     <>
@@ -47,6 +76,7 @@ export default function RoleSelector({
               <TabsTrigger
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground"
                 value="offer"
+                id={TOUR_STEP_IDS.ROLE_SELECTOR_OFFER}
               >
                 Ofrece un viaje
               </TabsTrigger>
@@ -63,13 +93,7 @@ export default function RoleSelector({
       <DialogDriver
         onOpenChange={setOpen}
         open={open}
-        onSubmit={async (data) => {
-          await setDriver(data);
-          form.setValue('role', 'offer');
-          form.setValue('price', data.price);
-          form.setValue('seats', data.seats);
-          setOpen(false);
-        }}
+        onSubmit={handleDriverSubmit}
         isPending={isSettingDriver}
       />
     </>

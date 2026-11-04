@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import getSupabaseClient from '@/lib/supabase';
+import { bucketRepository } from '@/repository/bucket';
 
 interface UseRealtimeChatProps {
   roomId: string;
@@ -17,6 +18,8 @@ export interface ChatMessage {
     lat: number;
     lng: number;
   };
+  imageUrl?: string;
+  replyToId?: string;
 }
 
 const EVENT_MESSAGE_TYPE = 'message_created';
@@ -27,6 +30,8 @@ type BroadcastMessage = {
   created_at: string;
   tag: string;
   user_id: string;
+  image_url: string | null;
+  reply_to_id: string | null;
 };
 
 type HistoryMessage = {
@@ -35,6 +40,8 @@ type HistoryMessage = {
   created_at: string;
   user_id: string;
   profile: { tag: string } | null;
+  image_url: string | null;
+  reply_to_id: string | null;
 };
 
 function getLocationFromContent(content: string) {
@@ -50,6 +57,8 @@ function mapMessage(message: {
   created_at: string;
   user_id: string;
   tag: string;
+  image_url?: string | null;
+  reply_to_id?: string | null;
 }): ChatMessage {
   return {
     id: message.id,
@@ -58,6 +67,8 @@ function mapMessage(message: {
     userId: message.user_id,
     createdAt: message.created_at,
     location: getLocationFromContent(message.content),
+    imageUrl: message.image_url ?? undefined,
+    replyToId: message.reply_to_id ?? undefined,
   };
 }
 
@@ -89,7 +100,9 @@ export function useRealtimeChat({ roomId }: UseRealtimeChatProps) {
     const loadHistory = async () => {
       const { data, error: historyError } = await supabase
         .from('travel_room_message')
-        .select('id, content, created_at, user_id, profile(tag)')
+        .select(
+          'id, content, created_at, user_id, image_url, reply_to_id, profile(tag)'
+        )
         .eq('room_id', roomId)
         .order('created_at', { ascending: true });
 
@@ -104,6 +117,8 @@ export function useRealtimeChat({ roomId }: UseRealtimeChatProps) {
           mapMessage({
             ...message,
             tag: message.profile?.tag ?? 'Usuario',
+            image_url: message.image_url,
+            reply_to_id: message.reply_to_id,
           })
       );
       setMessages((current) => mergeMessages(current, historyMessages));
@@ -149,19 +164,48 @@ export function useRealtimeChat({ roomId }: UseRealtimeChatProps) {
   }, [roomId, supabase]);
 
   const sendMessage = useCallback(
-    async (content: string, location?: { lat: number; lng: number }) => {
-      if (!isConnected) return;
+    async (
+      content: string,
+      options?: {
+        location?: { lat: number; lng: number };
+        image?: File;
+        replyToId?: string;
+      }
+    ): Promise<boolean> => {
+      if (!isConnected) return false;
 
-      const persistedContent = location
-        ? `${content} [loc:${location.lat},${location.lng}]`
+      const persistedContent = options?.location
+        ? `${content} [loc:${options.location.lat},${options.location.lng}]`
         : content;
+      let imageUrl: string | undefined;
+      if (options?.image) {
+        const uploadResult = await bucketRepository.uploadChatImage({
+          roomId,
+          file: options.image,
+        });
+        if (uploadResult.isFailure()) {
+          setError(
+            uploadResult.getError() ?? new Error('No se pudo subir la imagen')
+          );
+          return false;
+        }
+        imageUrl = uploadResult.getValue();
+      }
+
       const { error: insertError } = await supabase
         .from('travel_room_message')
-        .insert({ room_id: roomId, content: persistedContent });
+        .insert({
+          room_id: roomId,
+          content: persistedContent || (imageUrl ? 'Imagen' : ''),
+          image_url: imageUrl,
+          reply_to_id: options?.replyToId,
+        });
 
       if (insertError) {
         setError(insertError);
+        return false;
       }
+      return true;
     },
     [isConnected, roomId, supabase]
   );

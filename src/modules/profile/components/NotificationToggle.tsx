@@ -4,6 +4,7 @@ import { Bell, BellOff, Smartphone } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import {
   PushNotificationsService,
   type PushPermissionState,
@@ -74,35 +75,20 @@ export default function NotificationToggle() {
     );
   }
 
-  if (permission === 'granted') {
+  if (permission === 'granted' || permission === 'default') {
     return (
       <div className="mt-2 flex items-center gap-2">
-        <Button variant="secondary" disabled>
-          <Bell />
-          Activadas
-        </Button>
-        <Button
-          variant="ghost"
-          onClick={() => mutate()}
+        <Bell className="size-4" />
+        <span className="text-sm font-medium">Notificaciones</span>
+        <Switch
+          checked={permission === 'granted'}
+          onCheckedChange={() => mutate()}
           disabled={isPending}
-          title="Vuelve a registrar este dispositivo por si el registro falló"
-        >
-          Reparar
-        </Button>
+          aria-label="Activar o reparar notificaciones"
+        />
       </div>
     );
   }
 
-  return (
-    <Button
-      variant="outline"
-      size="default"
-      onClick={() => mutate()}
-      disabled={isPending}
-      className="mt-2"
-    >
-      <Bell />
-      Activar notificaciones
-    </Button>
-  );
+  return null;
 }

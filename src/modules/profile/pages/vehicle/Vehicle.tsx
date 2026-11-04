@@ -16,14 +16,13 @@ import { Spinner } from '@/components/ui/spinner';
 import { useVehicle } from '@/hooks/use-vehicle';
 import getLocalStorage from '@/lib/localStorage';
 import { TOUR_STEP_IDS, TOUR_STORAGE_KEYS } from '@/modules/tour/constants';
-import { useTour } from '@/modules/tour/engine/TourProvider';
-import { TOUR_FLOWS } from '@/modules/tour/flows';
+import { useTourStart } from '@/modules/tour/hooks/use-tour-flow';
 import { useUpdateVehicle } from './hooks/useUpdateVehicle';
 
 export default function Vehicle() {
   const { mutate, isPending } = useUpdateVehicle();
   const { data: vehicle } = useVehicle();
-  const { setSteps, startTour, setIsTourCompleted } = useTour();
+  const startTour = useTourStart();
   const [mounted, setMounted] = useState(false);
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -43,12 +42,9 @@ export default function Vehicle() {
 
     if (driverTourPending) {
       ls.removeItem(TOUR_STORAGE_KEYS.DRIVER_ONBOARDING_PENDING);
-      const flow = TOUR_FLOWS.driverOnboarding;
-      setSteps([...flow.steps]);
-      setIsTourCompleted(false);
-      setTimeout(() => startTour(), 300);
+      setTimeout(() => startTour('driverOnboarding'), 300);
     }
-  }, [mounted, setSteps, startTour, setIsTourCompleted]);
+  }, [mounted, startTour]);
 
   const onSubmit = form.handleSubmit((data) => {
     mutate(data, {

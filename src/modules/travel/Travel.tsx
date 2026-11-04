@@ -81,7 +81,6 @@ export default function Travel() {
           )}
         >
           {onlyRecurrents ? (
-            // Recurrents-only view
             isLoadingRecurrents ? (
               ['sk-1', 'sk-2', 'sk-3'].map((key) => (
                 <RideCardSkeleton key={key} />

@@ -1,38 +1,54 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import getLocalStorage from '@/lib/localStorage';
+import { TOUR_GATES, type TourGateName } from '../constants';
 import { useTour } from '../engine/TourProvider';
 import { TOUR_FLOWS, type TourFlowName } from '../flows';
 import type { TourFlow } from '../types';
 
 export type UseTourFlowOptions = {
-  /** Start the flow automatically the first time it is required. */
   autoStart?: boolean;
-  /** Delay before auto-starting, so the route finishes rendering. */
   autoStartDelay?: number;
-  /** Extra condition (besides `requires`) that gates the auto-start. */
   enabled?: boolean;
 };
 
-function toList(value?: string | readonly string[]): readonly string[] {
-  if (!value) {
-    return [];
+export const TOUR_GATE_EVENT = 'carpool:tour-gate-changed';
+
+export function notifyTourGateChange() {
+  if (typeof window === 'undefined') {
+    return;
   }
 
-  return typeof value === 'string' ? [value] : value;
+  window.dispatchEvent(new Event(TOUR_GATE_EVENT));
 }
 
-function readSeenFlag(storageKey?: string) {
-  if (!storageKey) {
-    return false;
-  }
+function isRequirementMet(requirement: string) {
+  const key =
+    requirement in TOUR_GATES
+      ? TOUR_GATES[requirement as TourGateName]
+      : TOUR_FLOWS[requirement as TourFlowName].storageKey;
 
-  return getLocalStorage().getItem(storageKey) === '1';
+  return !key || getLocalStorage().getItem(key) === '1';
 }
 
-/**
- * Binds a route to a tour flow: loads its steps, tracks the "already seen"
- * flag and optionally starts it automatically.
- */
+function areRequirementsMet(flow: TourFlow) {
+  const { requires } = flow;
+  const requirements =
+    typeof requires === 'string' ? [requires] : (requires ?? []);
+
+  return requirements.every(isRequirementMet);
+}
+
+/** Starts any flow on demand, replacing the loaded steps. */
+export function useTourStart() {
+  const { startTour } = useTour();
+
+  return useCallback(
+    (flowName: TourFlowName) => startTour([...TOUR_FLOWS[flowName].steps]),
+    [startTour]
+  );
+}
+
+/** Auto-starts a flow once its `requires` gates are satisfied. */
 export function useTourFlow(
   flowName: TourFlowName,
   {
@@ -41,76 +57,53 @@ export function useTourFlow(
     enabled = true,
   }: UseTourFlowOptions = {}
 ) {
-  const flow = TOUR_FLOWS[flowName];
-  const { setSteps, startTour, setIsTourCompleted, isActive } = useTour();
+  const flow: TourFlow = TOUR_FLOWS[flowName];
+  const { startTour } = useTour();
   const [isSeen, setIsSeen] = useState(true);
-  const autoStartAttempted = useRef(false);
+  const [requirementsMet, setRequirementsMet] = useState(false);
+  const started = useRef(false);
 
   useEffect(() => {
-    const seen = readSeenFlag(flow.storageKey);
-
-    setSteps([...flow.steps]);
-    setIsSeen(seen);
-    setIsTourCompleted(seen);
-  }, [flow, setIsTourCompleted, setSteps]);
-
-  const areRequirementsMet = useCallback(() => {
-    const requirements = (flow as TourFlow).requires;
-
-    return toList(requirements).every((dependency) => {
-      const dependencyKey = TOUR_FLOWS[dependency as TourFlowName]?.storageKey;
-
-      return !dependencyKey || readSeenFlag(dependencyKey);
-    });
-  }, [flow]);
-
-  const markSeen = useCallback(() => {
-    if (!flow.storageKey) {
-      return;
-    }
-
-    getLocalStorage().setItem(flow.storageKey, '1');
-    setIsSeen(true);
+    setIsSeen(
+      flow.storageKey
+        ? getLocalStorage().getItem(flow.storageKey) === '1'
+        : false
+    );
   }, [flow.storageKey]);
 
-  const markUnseen = useCallback(() => {
-    if (flow.storageKey) {
-      getLocalStorage().removeItem(flow.storageKey);
-    }
+  const syncRequirements = useCallback(
+    () => setRequirementsMet(areRequirementsMet(flow)),
+    [flow]
+  );
 
-    setIsSeen(false);
-    setIsTourCompleted(false);
-  }, [flow.storageKey, setIsTourCompleted]);
+  useEffect(() => {
+    syncRequirements();
+    window.addEventListener(TOUR_GATE_EVENT, syncRequirements);
 
-  const startFlow = useCallback(() => {
-    markSeen();
-    setIsTourCompleted(false);
-    startTour([...flow.steps]);
-  }, [flow, markSeen, setIsTourCompleted, startTour]);
-
-  const skipFlow = useCallback(() => {
-    markSeen();
-    setIsTourCompleted(true);
-  }, [markSeen, setIsTourCompleted]);
+    return () => {
+      window.removeEventListener(TOUR_GATE_EVENT, syncRequirements);
+    };
+  }, [syncRequirements]);
 
   useEffect(() => {
     if (
       !autoStart ||
       !enabled ||
       isSeen ||
-      isActive ||
-      autoStartAttempted.current
+      !requirementsMet ||
+      started.current
     ) {
       return;
     }
 
-    if (!areRequirementsMet()) {
-      return;
-    }
-
-    autoStartAttempted.current = true;
+    started.current = true;
     const timeoutId = window.setTimeout(() => {
-      startFlow();
+      if (flow.storageKey) {
+        getLocalStorage().setItem(flow.storageKey, '1');
+      }
+
+      setIsSeen(true);
+      startTour([...flow.steps]);
     }, autoStartDelay);
 
     return () => {
@@ -120,20 +113,9 @@ export function useTourFlow(
     autoStart,
     enabled,
     isSeen,
-    isActive,
+    requirementsMet,
     autoStartDelay,
-    areRequirementsMet,
-    startFlow,
-  ]);
-
-  return {
     flow,
-    isSeen,
-    isTourActive: isActive,
-    shouldPrompt: !isSeen && areRequirementsMet(),
-    startFlow,
-    skipFlow,
-    markSeen,
-    markUnseen,
-  };
+    startTour,
+  ]);
 }

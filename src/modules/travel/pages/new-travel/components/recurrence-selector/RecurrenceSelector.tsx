@@ -67,7 +67,6 @@ export default function RecurrenceSelector() {
   const recurrenceRule = useWatch({ control, name: 'recurrenceRule' });
   const isVisible = useWatch({ control, name: 'isVisible' });
 
-  // Parse current rule to extract freq and days
   const parsedFreq = (() => {
     if (!recurrenceRule) return 'WEEKLY' as Frequency;
     const freq = recurrenceRule

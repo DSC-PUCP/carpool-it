@@ -23,8 +23,7 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import type { DriverVehicle } from '@/core/models';
 import { TOUR_STEP_IDS } from '@/modules/tour/constants';
-import { useTour } from '@/modules/tour/engine/TourProvider';
-import { TOUR_FLOWS } from '@/modules/tour/flows';
+import { useTourStart } from '@/modules/tour/hooks/use-tour-flow';
 
 type Props = {
   open: boolean;
@@ -38,20 +37,17 @@ export default function DialogDriver({
   open,
   isPending,
 }: Props) {
-  const { setSteps, startTour, setIsTourCompleted } = useTour();
+  const startTour = useTourStart();
 
   useEffect(() => {
     const handleShowDriverTour = () => {
-      const flow = TOUR_FLOWS.driverOnboarding;
-      setSteps([...flow.steps]);
-      setIsTourCompleted(false);
-      setTimeout(() => startTour(), 300);
+      setTimeout(() => startTour('driverOnboarding'), 300);
     };
 
     window.addEventListener('showDriverTour', handleShowDriverTour);
     return () =>
       window.removeEventListener('showDriverTour', handleShowDriverTour);
-  }, [setSteps, startTour, setIsTourCompleted]);
+  }, [startTour]);
 
   const form = useForm({
     resolver: zodResolver(formSchema),

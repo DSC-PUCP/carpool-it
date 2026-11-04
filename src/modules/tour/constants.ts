@@ -1,7 +1,3 @@
-/**
- * DOM ids used as tour anchors. A flow should never hardcode an id string, so
- * renaming a component only requires updating this map.
- */
 export const TOUR_STEP_IDS = {
   // Navigation (desktop sidebar / mobile navbar)
   SIDEBAR_NEW_TRAVEL: 'sidebar-new-travel',
@@ -19,6 +15,7 @@ export const TOUR_STEP_IDS = {
   // New travel form
   TRAVEL_FORM_ORIGIN: 'travel-form-origin',
   TRAVEL_FORM_DESTINATION: 'travel-form-destination',
+  TRAVEL_FORM_SWAP: 'travel-form-swap',
   TRAVEL_FORM_DATE: 'travel-form-date',
   TRAVEL_FORM_TIME: 'travel-form-time',
   TRAVEL_FORM_SEATS: 'travel-form-seats',
@@ -54,10 +51,9 @@ export const TOUR_STEP_IDS = {
   PROFILE_SUPPORT: 'profile-support',
 } as const;
 
-/** localStorage keys that remember which flows a user already completed. */
 export const TOUR_STORAGE_KEYS = {
-  ONBOARDING: 'carpool_onboarding_seen',
   ONBOARDING_LEGACY: 'carpool_onboarding_completed',
+  WELCOME: 'carpool_welcome_seen',
   HOME: 'carpool_home_tour_seen',
   PROFILE: 'carpool_profile_tour_seen',
   PASSENGER: 'carpool_passenger_tour_seen',
@@ -67,3 +63,9 @@ export const TOUR_STORAGE_KEYS = {
   DRIVER_ONBOARDING_PENDING: 'carpool_driver_tour_pending',
   DRIVER_PUBLISH: 'carpool_driver_publish_tour_seen',
 } as const;
+
+export const TOUR_GATES = {
+  welcome: TOUR_STORAGE_KEYS.WELCOME,
+} as const;
+
+export type TourGateName = keyof typeof TOUR_GATES;

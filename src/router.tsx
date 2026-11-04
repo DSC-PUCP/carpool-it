@@ -5,7 +5,6 @@ import NotFound from './components/common/NotFound';
 import * as TanstackQuery from './integrations/tanstack-query/root-provider';
 import { routeTree } from './routeTree.gen';
 
-// Create a new router instance
 export const getRouter = () => {
   const rqContext = TanstackQuery.getContext();
 

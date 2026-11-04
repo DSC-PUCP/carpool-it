@@ -11,7 +11,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { cn } from '@/lib/utils';
 import type {
   TourSelector,
   TourStep,
@@ -27,26 +26,15 @@ type Rect = {
 };
 
 type TourContextValue = {
-  currentStep: number;
-  totalSteps: number;
-  nextStep: () => void;
-  previousStep: () => void;
-  endTour: () => void;
   isActive: boolean;
-  /** Starts the tour, optionally replacing the loaded steps in the same tick. */
-  startTour: (steps?: TourStep[]) => void;
-  setSteps: (steps: TourStep[]) => void;
-  steps: TourStep[];
-  isTourCompleted: boolean;
-  setIsTourCompleted: (completed: boolean) => void;
+  startTour: (steps: TourStep[]) => void;
+  endTour: () => void;
 };
 
-interface TourProviderProps {
+type TourProviderProps = {
   children: React.ReactNode;
   onComplete?: (shouldReload: boolean) => void;
-  className?: string;
-  isTourCompleted?: boolean;
-}
+};
 
 const TourContext = createContext<TourContextValue | null>(null);
 
@@ -81,11 +69,6 @@ function isVisibleElement(element: HTMLElement) {
   return true;
 }
 
-/**
- * Resolves the first target that exists and is actually rendered. Layouts
- * render both the sidebar and the mobile navbar in the DOM, so an id alone is
- * not enough to know which one the user can see.
- */
 function findTourTarget(selector: TourSelector): {
   element: HTMLElement;
   position?: TourStepPosition;
@@ -100,10 +83,6 @@ function findTourTarget(selector: TourSelector): {
   return null;
 }
 
-function findTourElement(selector: TourSelector): HTMLElement | null {
-  return findTourTarget(selector)?.element ?? null;
-}
-
 function getElementRect(element: HTMLElement): Rect {
   const rect = element.getBoundingClientRect();
 
@@ -115,12 +94,31 @@ function getElementRect(element: HTMLElement): Rect {
   };
 }
 
-function calculateContentPosition(
+const POSITION_CANDIDATES: Record<
+  TourStepPosition,
+  readonly TourStepPosition[]
+> = {
+  top: ['top', 'bottom', 'right', 'left'],
+  bottom: ['bottom', 'top', 'right', 'left'],
+  left: ['left', 'right', 'bottom', 'top'],
+  right: ['right', 'left', 'bottom', 'top'],
+};
+
+function rectsOverlap(a: Rect, b: Rect) {
+  return !(
+    a.left + a.width <= b.left ||
+    b.left + b.width <= a.left ||
+    a.top + a.height <= b.top ||
+    b.top + b.height <= a.top
+  );
+}
+
+function computeRect(
   elementPos: Rect,
-  position: 'top' | 'bottom' | 'left' | 'right' = 'bottom',
-  modalWidth: number = DEFAULT_MODAL_WIDTH,
-  modalHeight: number = DEFAULT_MODAL_HEIGHT
-) {
+  position: TourStepPosition,
+  width: number,
+  height: number
+): Rect {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
 
@@ -129,60 +127,63 @@ function calculateContentPosition(
 
   switch (position) {
     case 'top':
-      top = elementPos.top - modalHeight - PADDING;
-      left = elementPos.left + elementPos.width / 2 - modalWidth / 2;
+      top = elementPos.top - height - PADDING;
+      left = elementPos.left + elementPos.width / 2 - width / 2;
       break;
     case 'bottom':
       top = elementPos.top + elementPos.height + PADDING;
-      left = elementPos.left + elementPos.width / 2 - modalWidth / 2;
+      left = elementPos.left + elementPos.width / 2 - width / 2;
       break;
     case 'left':
-      left = elementPos.left - modalWidth - PADDING;
-      top = elementPos.top + elementPos.height / 2 - modalHeight / 2;
+      left = elementPos.left - width - PADDING;
+      top = elementPos.top + elementPos.height / 2 - height / 2;
       break;
     case 'right':
       left = elementPos.left + elementPos.width + PADDING;
-      top = elementPos.top + elementPos.height / 2 - modalHeight / 2;
+      top = elementPos.top + elementPos.height / 2 - height / 2;
       break;
   }
 
   return {
-    top: Math.max(
-      PADDING,
-      Math.min(top, viewportHeight - modalHeight - PADDING)
-    ),
-    left: Math.max(
-      PADDING,
-      Math.min(left, viewportWidth - modalWidth - PADDING)
-    ),
-    width: modalWidth,
-    height: modalHeight,
+    top: Math.max(PADDING, Math.min(top, viewportHeight - height - PADDING)),
+    left: Math.max(PADDING, Math.min(left, viewportWidth - width - PADDING)),
+    width,
+    height,
   };
 }
 
-export function TourProvider({
-  children,
-  onComplete,
-  className,
-  isTourCompleted = false,
-}: TourProviderProps) {
+function calculateContentPosition(
+  elementPos: Rect,
+  position: TourStepPosition = 'bottom',
+  modalWidth: number = DEFAULT_MODAL_WIDTH,
+  modalHeight: number = DEFAULT_MODAL_HEIGHT
+): Rect {
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const width = Math.min(modalWidth, viewportWidth - PADDING * 2);
+  const height = Math.min(modalHeight, viewportHeight - PADDING * 2);
+
+  const candidates = POSITION_CANDIDATES[position].map((candidate) =>
+    computeRect(elementPos, candidate, width, height)
+  );
+
+  return (
+    candidates.find((rect) => !rectsOverlap(rect, elementPos)) ?? candidates[0]
+  );
+}
+
+export function TourProvider({ children, onComplete }: TourProviderProps) {
   const [steps, setSteps] = useState<TourStep[]>([]);
   const [currentStep, setCurrentStep] = useState(-1);
   const [elementPosition, setElementPosition] = useState<Rect | null>(null);
   const [resolvedPosition, setResolvedPosition] = useState<
     TourStepPosition | undefined
   >(undefined);
-  const [isCompleted, setIsCompleted] = useState(isTourCompleted);
-  const [contentSize, setContentSize] = useState<{
-    width: number;
-    height: number;
-  }>({
+  const [contentSize, setContentSize] = useState({
     width: DEFAULT_MODAL_WIDTH,
     height: DEFAULT_MODAL_HEIGHT,
   });
   const contentRef = useRef<HTMLDivElement | null>(null);
-  const stepsRef = useRef<TourStep[]>(steps);
-  stepsRef.current = steps;
 
   const activeStep = currentStep >= 0 ? steps[currentStep] : undefined;
 
@@ -199,7 +200,6 @@ export function TourProvider({
     return Boolean(target);
   }, [currentStep, steps]);
 
-  // Track the highlighted element while the step is in progress.
   useEffect(() => {
     if (currentStep < 0) {
       setElementPosition(null);
@@ -229,7 +229,7 @@ export function TourProvider({
     let attempts = 0;
     let pollId: number | undefined;
     if (!target) {
-      // The target may render after the step starts (async data, dialogs...).
+      // Targets can mount after the step starts (async data, dialogs).
       pollId = window.setInterval(() => {
         attempts += 1;
 
@@ -251,7 +251,6 @@ export function TourProvider({
     };
   }, [currentStep, steps, updateElementPosition]);
 
-  // Keep the tooltip aligned with its real rendered size.
   useEffect(() => {
     if (currentStep < 0) {
       return;
@@ -265,12 +264,8 @@ export function TourProvider({
     const updateContentSize = () => {
       const rect = contentElement.getBoundingClientRect();
       setContentSize({
-        width:
-          steps[currentStep]?.modalWidth ?? rect.width ?? DEFAULT_MODAL_WIDTH,
-        height:
-          steps[currentStep]?.modalHeight ??
-          rect.height ??
-          DEFAULT_MODAL_HEIGHT,
+        width: steps[currentStep]?.modalWidth ?? rect.width,
+        height: steps[currentStep]?.modalHeight ?? rect.height,
       });
     };
 
@@ -284,132 +279,29 @@ export function TourProvider({
     };
   }, [currentStep, steps]);
 
-  const setIsTourCompleted = useCallback((completed: boolean) => {
-    setIsCompleted(completed);
-  }, []);
-
   const nextStep = useCallback(() => {
-    setCurrentStep((prev) => {
-      if (prev >= stepsRef.current.length - 1) {
-        setIsCompleted(true);
-        const currentStepData = stepsRef.current[prev];
-        onComplete?.(currentStepData?.shouldReload ?? false);
-        return -1;
-      }
+    if (currentStep >= steps.length - 1) {
+      onComplete?.(steps[currentStep]?.shouldReload ?? false);
+      setCurrentStep(-1);
+      return;
+    }
 
-      return prev + 1;
-    });
-  }, [onComplete]);
-
-  const previousStep = useCallback(() => {
-    setCurrentStep((prev) => (prev > 0 ? prev - 1 : prev));
-  }, []);
+    setCurrentStep((prev) => prev + 1);
+  }, [currentStep, steps, onComplete]);
 
   const endTour = useCallback(() => {
     setCurrentStep(-1);
   }, []);
 
-  const startTour = useCallback((nextSteps?: TourStep[]) => {
-    const resolvedSteps = nextSteps ?? stepsRef.current;
-    if (resolvedSteps.length === 0) {
+  const startTour = useCallback((nextSteps: TourStep[]) => {
+    if (nextSteps.length === 0) {
       return;
     }
 
-    if (nextSteps) {
-      // Keep the ref in sync so the same tick sees the new flow.
-      stepsRef.current = nextSteps;
-      setSteps(nextSteps);
-    }
-
+    setSteps(nextSteps);
     setCurrentStep(0);
   }, []);
 
-  // Steps can advance on their own when the user interacts with the target.
-  useEffect(() => {
-    if (!activeStep?.onAdvance) {
-      return;
-    }
-
-    const step = activeStep;
-    const targetElement = findTourElement(step.selectorId);
-    const handleEvent = () => nextStep();
-
-    if (step.onAdvance === 'open') {
-      const observer = new MutationObserver((mutations) => {
-        for (const mutation of mutations) {
-          if (
-            mutation.type === 'attributes' &&
-            mutation.attributeName === 'open'
-          ) {
-            const target = mutation.target as HTMLElement;
-            if (target.getAttribute('open') !== null) {
-              nextStep();
-              observer.disconnect();
-            }
-          }
-        }
-      });
-
-      if (targetElement) {
-        observer.observe(targetElement, { attributes: true });
-      }
-
-      return () => observer.disconnect();
-    }
-
-    if (step.onAdvance === 'click') {
-      if (targetElement) {
-        targetElement.addEventListener('click', handleEvent, { once: true });
-        return () => targetElement.removeEventListener('click', handleEvent);
-      }
-
-      window.addEventListener('advanceDriverToDialog', handleEvent, {
-        once: true,
-      });
-      return () =>
-        window.removeEventListener('advanceDriverToDialog', handleEvent);
-    }
-
-    if (step.onAdvance === 'valueChange' && targetElement) {
-      targetElement.addEventListener('input', handleEvent, { once: true });
-      targetElement.addEventListener('change', handleEvent, { once: true });
-      return () => {
-        targetElement.removeEventListener('input', handleEvent);
-        targetElement.removeEventListener('change', handleEvent);
-      };
-    }
-  }, [activeStep, nextStep]);
-
-  // Let clicks on the highlighted area trigger the step action.
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      const step = currentStep >= 0 ? steps[currentStep] : undefined;
-      if (!step?.onClickWithinArea || !elementPosition) {
-        return;
-      }
-
-      const width = step.width || elementPosition.width;
-      const height = step.height || elementPosition.height;
-
-      const isWithinBounds =
-        e.clientX >= elementPosition.left &&
-        e.clientX <= elementPosition.left + width &&
-        e.clientY >= elementPosition.top &&
-        e.clientY <= elementPosition.top + height;
-
-      if (isWithinBounds) {
-        step.onClickWithinArea();
-      }
-    };
-
-    window.addEventListener('click', handleClick);
-
-    return () => {
-      window.removeEventListener('click', handleClick);
-    };
-  }, [currentStep, elementPosition, steps]);
-
-  // Escape always exits the tour.
   useEffect(() => {
     if (currentStep < 0) {
       return;
@@ -440,28 +332,11 @@ export function TourProvider({
 
   const contextValue = useMemo<TourContextValue>(
     () => ({
-      currentStep,
-      totalSteps: steps.length,
-      nextStep,
-      previousStep,
-      endTour,
       isActive: currentStep >= 0,
       startTour,
-      setSteps,
-      steps,
-      isTourCompleted: isCompleted,
-      setIsTourCompleted,
-    }),
-    [
-      currentStep,
-      steps,
-      nextStep,
-      previousStep,
       endTour,
-      startTour,
-      isCompleted,
-      setIsTourCompleted,
-    ]
+    }),
+    [currentStep, startTour, endTour]
   );
 
   return (
@@ -478,14 +353,11 @@ export function TourProvider({
                 position: 'fixed',
                 top: elementPosition.top,
                 left: elementPosition.left,
-                width: activeStep.width || elementPosition.width,
-                height: activeStep.height || elementPosition.height,
+                width: elementPosition.width,
+                height: elementPosition.height,
                 boxShadow: '0 0 0 9999px rgb(0 0 0 / 0.6)',
               }}
-              className={cn(
-                'z-40 rounded-lg border-4 border-primary/60 pointer-events-none',
-                className
-              )}
+              className="z-40 rounded-lg border-4 border-primary/60 pointer-events-none"
             />
 
             <motion.div
@@ -539,15 +411,13 @@ export function TourProvider({
                   </motion.div>
 
                   <div className="mt-4 flex justify-center">
-                    {!activeStep.onAdvance && (
-                      <button
-                        type="button"
-                        onClick={nextStep}
-                        className="text-sm font-medium text-primary hover:text-primary/90 bg-primary/10 px-4 py-2 rounded-md"
-                      >
-                        Entendido
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={nextStep}
+                      className="text-sm font-medium text-primary hover:text-primary/90 bg-primary/10 px-4 py-2 rounded-md"
+                    >
+                      Entendido
+                    </button>
                   </div>
                 </div>
               </AnimatePresence>

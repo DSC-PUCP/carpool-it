@@ -54,6 +54,7 @@ export default function RouteInputs() {
 
           <div className="m-auto flex flex-col items-center gap-1">
             <Button
+              id={TOUR_STEP_IDS.TRAVEL_FORM_SWAP}
               variant="outline"
               type="button"
               onClick={handleToggle}

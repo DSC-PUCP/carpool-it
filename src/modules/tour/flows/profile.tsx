@@ -3,11 +3,6 @@ import type { TourFlow } from '../types';
 
 export const profileTourFlow = {
   storageKey: TOUR_STORAGE_KEYS.PROFILE,
-  prompt: {
-    title: 'Conoce tu perfil',
-    description:
-      'Un recorrido corto por tus datos, estadísticas y accesos de ayuda.',
-  },
   steps: [
     {
       selectorId: TOUR_STEP_IDS.PROFILE_HEADER,

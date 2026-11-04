@@ -1,21 +1,9 @@
 import { TOUR_STEP_IDS, TOUR_STORAGE_KEYS } from '../constants';
 import type { TourFlow } from '../types';
 
-/**
- * Home tour: the main product walkthrough. Targets are shared between the
- * desktop sidebar and the mobile bottom navbar through selector fallbacks.
- */
 export const homeTourFlow = {
   storageKey: TOUR_STORAGE_KEYS.HOME,
-  // Only offer the product tour once the onboarding tour was dismissed.
-  requires: ['onboarding', 'onboardingMobile'],
-  prompt: {
-    title: 'Conoce Inicio',
-    description:
-      'Te mostramos cómo elegir la dirección, filtrar viajes y publicar el tuyo en menos de un minuto.',
-    startLabel: 'Ver recorrido',
-    skipLabel: 'Ahora no',
-  },
+  requires: 'welcome',
   steps: [
     {
       selectorId: TOUR_STEP_IDS.HOME_DIRECTION,

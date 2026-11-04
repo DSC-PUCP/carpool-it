@@ -9,33 +9,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useIsMobile } from '@/hooks/use-mobile';
 import getLocalStorage from '@/lib/localStorage';
 import { TOUR_STORAGE_KEYS } from '@/modules/tour/constants';
-import { useTourFlow } from '@/modules/tour/hooks/use-tour-flow';
+import { notifyTourGateChange } from '@/modules/tour/hooks/use-tour-flow';
 
 export default function WelcomeDialog() {
   const [open, setOpen] = useState(false);
-  const isMobile = useIsMobile();
-  const { shouldPrompt, startFlow, skipFlow } = useTourFlow(
-    isMobile ? 'onboardingMobile' : 'onboarding'
-  );
 
   useEffect(() => {
-    setOpen(shouldPrompt);
-  }, [shouldPrompt]);
+    setOpen(getLocalStorage().getItem(TOUR_STORAGE_KEYS.WELCOME) !== '1');
+  }, []);
 
-  const handleStart = () => {
+  const handleClose = () => {
+    const ls = getLocalStorage();
+    ls.setItem(TOUR_STORAGE_KEYS.WELCOME, '1');
     // Legacy flag read by the travel-form tour gate.
-    getLocalStorage().setItem(TOUR_STORAGE_KEYS.ONBOARDING_LEGACY, '1');
+    ls.setItem(TOUR_STORAGE_KEYS.ONBOARDING_LEGACY, '1');
     setOpen(false);
-    startFlow();
-  };
-
-  const handleSkip = () => {
-    getLocalStorage().setItem(TOUR_STORAGE_KEYS.ONBOARDING_LEGACY, '1');
-    skipFlow();
-    setOpen(false);
+    notifyTourGateChange();
   };
 
   return (
@@ -43,7 +34,7 @@ export default function WelcomeDialog() {
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
-          handleSkip();
+          handleClose();
         }
       }}
     >
@@ -53,10 +44,9 @@ export default function WelcomeDialog() {
         </DialogHeader>
         <div className="space-y-3 text-sm leading-6 text-muted-foreground">
           <p>
-            Te dejamos un recorrido corto para ubicar lo principal y empezar a
-            usar la app sin perder tiempo.
+            Antes de arrancar, te recomendamos dos cosas para aprovechar mejor
+            la app:
           </p>
-          <p>Antes de arrancar, te recomendamos:</p>
           <ul className="list-disc space-y-2 pl-5">
             <li>
               Unirte a los grupos de WhatsApp a través de{' '}
@@ -76,7 +66,7 @@ export default function WelcomeDialog() {
               <Link
                 to="/profile/asisstance"
                 hash="agregar-a-pantalla-de-inicio"
-                onClick={handleSkip}
+                onClick={handleClose}
                 className="font-medium text-primary underline underline-offset-4 transition-opacity hover:opacity-80"
               >
                 asistencia
@@ -86,10 +76,7 @@ export default function WelcomeDialog() {
           </ul>
         </div>
         <DialogFooter>
-          <Button onClick={handleSkip} variant="outline">
-            Ahora no
-          </Button>
-          <Button onClick={handleStart}>Iniciar recorrido</Button>
+          <Button onClick={handleClose}>Entendido</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

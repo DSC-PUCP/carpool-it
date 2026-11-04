@@ -27,8 +27,10 @@ import getLocalStorage from '@/lib/localStorage';
 import { cn } from '@/lib/utils';
 import { useCreateLocation } from '@/modules/profile/pages/location/hooks/useCreateLocation';
 import { TOUR_STEP_IDS, TOUR_STORAGE_KEYS } from '@/modules/tour/constants';
-import { useTour } from '@/modules/tour/engine/TourProvider';
-import { TOUR_FLOWS } from '@/modules/tour/flows';
+import {
+  TOUR_GATE_EVENT,
+  useTourStart,
+} from '@/modules/tour/hooks/use-tour-flow';
 import type { LatLngTuple } from '@/modules/travel/const';
 import { universityCoordinates } from '../../const';
 import { getClosestReferencePoint, isCampusLocation } from '../../utils';
@@ -60,7 +62,7 @@ export default function NewTravel() {
   const navigation = useNavigate();
   const [showTourPrompt, setShowTourPrompt] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { setSteps, startTour, setIsTourCompleted } = useTour();
+  const startTour = useTourStart();
 
   useEffect(() => {
     setMounted(true);
@@ -69,50 +71,57 @@ export default function NewTravel() {
   useEffect(() => {
     if (!mounted) return;
 
-    const ls = getLocalStorage();
-    const onboardingCompleted =
-      ls.getItem(TOUR_STORAGE_KEYS.ONBOARDING_LEGACY) === '1' ||
-      ls.getItem(TOUR_STORAGE_KEYS.ONBOARDING) === '1';
-    const travelTourSeen = ls.getItem(TOUR_STORAGE_KEYS.TRAVEL_FORM) === '1';
+    const checkGate = () => {
+      const ls = getLocalStorage();
+      const onboardingCompleted =
+        ls.getItem(TOUR_STORAGE_KEYS.ONBOARDING_LEGACY) === '1' ||
+        ls.getItem(TOUR_STORAGE_KEYS.WELCOME) === '1';
+      const travelTourSeen = ls.getItem(TOUR_STORAGE_KEYS.TRAVEL_FORM) === '1';
 
-    if (onboardingCompleted && !travelTourSeen) {
-      setShowTourPrompt(true);
-    }
+      if (onboardingCompleted && !travelTourSeen) {
+        setShowTourPrompt(true);
+      }
+    };
+
+    checkGate();
+    window.addEventListener(TOUR_GATE_EVENT, checkGate);
+
+    return () => {
+      window.removeEventListener(TOUR_GATE_EVENT, checkGate);
+    };
   }, [mounted]);
 
   const handleTourChoice = (choice: 'request' | 'offer' | 'skip') => {
     const ls = getLocalStorage();
-    if (choice !== 'skip') {
-      ls.setItem(TOUR_STORAGE_KEYS.TRAVEL_FORM, '1');
-      if (choice === 'request') {
-        form.setValue('role', 'request');
-        const flow = TOUR_FLOWS.passenger;
-        setSteps([...flow.steps]);
-        setIsTourCompleted(false);
-        startTour();
-      } else {
-        form.setValue('role', 'request');
-        if (!vehicleData) {
-          ls.setItem(TOUR_STORAGE_KEYS.DRIVER_ONBOARDING_PENDING, '1');
-          const flow = TOUR_FLOWS.driverOnboarding;
-          setSteps([...flow.steps]);
-          setIsTourCompleted(false);
-          startTour();
-        } else {
-          const driverPublishSeen =
-            ls.getItem(TOUR_STORAGE_KEYS.DRIVER_PUBLISH) === '1';
-          if (!driverPublishSeen) {
-            const flow = TOUR_FLOWS.driverPublish;
-            setSteps([...flow.steps]);
-            setIsTourCompleted(false);
-            startTour();
-          }
-        }
-      }
-    } else {
-      ls.setItem(TOUR_STORAGE_KEYS.TRAVEL_FORM, '1');
-    }
+    ls.setItem(TOUR_STORAGE_KEYS.TRAVEL_FORM, '1');
     setShowTourPrompt(false);
+
+    if (choice === 'skip') {
+      return;
+    }
+
+    if (choice === 'request') {
+      form.setValue('role', 'request');
+      startTour('passenger');
+      return;
+    }
+
+    if (!vehicleData) {
+      // No vehicle yet: keep this tab and point at "Ofrece un viaje".
+      form.setValue('role', 'request');
+      ls.setItem(TOUR_STORAGE_KEYS.DRIVER_ONBOARDING_PENDING, '1');
+      startTour('driverOnboarding');
+      return;
+    }
+
+    // The driver flow only makes sense on the offer tab.
+    form.setValue('role', 'offer');
+    form.setValue('seats', vehicleData.seats);
+    form.setValue('price', vehicleData.price);
+
+    if (ls.getItem(TOUR_STORAGE_KEYS.DRIVER_PUBLISH) !== '1') {
+      startTour('driverPublish');
+    }
   };
 
   const defaultRole = vehicleData
